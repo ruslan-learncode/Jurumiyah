@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from google import genai
+from google.genai import types
 from pydantic import BaseModel, Field
 
 
@@ -22,7 +23,19 @@ logger = logging.getLogger(__name__)
 gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
 if not gemini_api_key:
     raise RuntimeError("GEMINI_API_KEY belum diatur pada environment backend.")
-client = genai.Client(api_key=gemini_api_key)
+client = genai.Client(
+    api_key=gemini_api_key,
+    http_options=types.HttpOptions(
+        api_version="v1",
+        timeout=45_000,
+        retry_options=types.HttpRetryOptions(
+            attempts=2,
+            initial_delay=0.5,
+            max_delay=1.0,
+            http_status_codes=[408, 429, 500, 502, 503, 504],
+        ),
+    ),
+)
 model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
 
 # The HTML is served from this app, so same-origin requests need no CORS.
@@ -141,35 +154,35 @@ def chat(payload: ChatRequest, request: Request):
         stream_open_ms = None
         first_text_ms = None
         try:
-            events = client.interactions.create(
+            logger.info("chat request_id=%s gemini_request_started=true model=%s", request_id, model)
+            chunks = client.models.generate_content_stream(
                 model=model,
-                system_instruction=(
-                    "Kamu adalah asisten belajar yang ramah dan menjawab dalam bahasa "
-                    "yang digunakan pengguna, terutama bahasa Indonesia. Jawab sapaan "
-                    "dan pertanyaan umum secara langsung. Kamu juga membantu belajar "
-                    "Islam, nahwu, dan sharaf. Untuk pertanyaan agama yang memerlukan "
-                    "fatwa atau memiliki perbedaan pendapat, jelaskan keterbatasanmu "
-                    "dan sarankan pengguna bertanya kepada ahli tepercaya. Jika tidak "
-                    "yakin, katakan dengan jujur. Gunakan teks biasa, ringkas, dan "
-                    "jangan keluarkan HTML."
+                contents=message,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "Kamu adalah asisten belajar yang ramah dan menjawab dalam bahasa "
+                        "yang digunakan pengguna, terutama bahasa Indonesia. Jawab sapaan "
+                        "dan pertanyaan umum secara langsung. Kamu juga membantu belajar "
+                        "Islam, nahwu, dan sharaf. Untuk pertanyaan agama yang memerlukan "
+                        "fatwa atau memiliki perbedaan pendapat, jelaskan keterbatasanmu "
+                        "dan sarankan pengguna bertanya kepada ahli tepercaya. Jika tidak "
+                        "yakin, katakan dengan jujur. Gunakan teks biasa, ringkas, dan "
+                        "jangan keluarkan HTML."
+                    ),
+                    max_output_tokens=350,
+                    temperature=0.3,
+                    thinking_config=types.ThinkingConfig(thinking_level="low"),
                 ),
-                generation_config={
-                    "max_output_tokens": 350,
-                    "temperature": 0.3,
-                },
-                input=message,
-                stream=True,
             )
             stream_open_ms = (time.perf_counter() - started_at) * 1000
             yield ndjson_event(cache=False)
-            for event in events:
-                if event.event_type == "step.delta" and event.delta.type == "text":
-                    text = event.delta.text
-                    if text:
-                        if first_text_ms is None:
-                            first_text_ms = (time.perf_counter() - started_at) * 1000
-                        answer_parts.append(text)
-                        yield ndjson_event(delta=text)
+            for chunk in chunks:
+                text = chunk.text or ""
+                if text:
+                    if first_text_ms is None:
+                        first_text_ms = (time.perf_counter() - started_at) * 1000
+                    answer_parts.append(text)
+                    yield ndjson_event(delta=text)
 
             answer = "".join(answer_parts).strip()
             if not answer:

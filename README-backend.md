@@ -1,10 +1,12 @@
 # Backend chatbot
 
 The HTML frontend and `/api/chat` endpoint are served from the same FastAPI app.
-The endpoint streams Gemini output as newline-delimited JSON, so the browser can
-show text as it arrives. Successful answers are cached in memory for 15 minutes
-(up to 256 entries); cached answers are returned immediately. The cache is local
-to each process and clears when the backend restarts.
+The endpoint uses Gemini's stable Generate Content streaming API and returns
+newline-delimited JSON, so the browser can show text as it arrives. Gemini
+requests have a 45-second HTTP timeout and at most two attempts for transient
+errors. Successful answers are cached in memory for 15 minutes (up to 256
+entries); cached answers are returned immediately. The cache is local to each
+process and clears when the backend restarts.
 The Gemini API key stays in the server environment and is never sent to the browser.
 
 ## Inspect chat latency
