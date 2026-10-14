@@ -122,9 +122,10 @@
   .about-app-icon svg{width:1rem;height:1rem;}
   .about-backdrop{ position:fixed; inset:0; z-index:87; display:none; background:rgba(8,17,13,.62); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
   .about-backdrop.open{ display:block; }
-  .about-dialog-wrap{ position:fixed; inset:0; z-index:88; display:none; align-items:center; justify-content:center; padding:1rem; }
+  body.about-open{ overflow:hidden; }
+  .about-dialog-wrap{ position:fixed; inset:0; z-index:120; display:none; align-items:center; justify-content:center; padding:1rem; overscroll-behavior:contain; }
   .about-dialog-wrap.open{ display:flex; }
-  .about-dialog{ width:min(620px,100%); max-height:90dvh; overflow-y:auto; border:1px solid rgba(201,162,39,.38); border-radius:1.25rem; background:var(--bg-card); color:var(--text-main); box-shadow:0 32px 90px -22px rgba(0,0,0,.62); }
+  .about-dialog{ width:min(620px,100%); max-height:min(90dvh,720px); overflow-y:auto; overscroll-behavior:contain; border:1px solid rgba(201,162,39,.38); border-radius:1.25rem; background:var(--bg-card); color:var(--text-main); box-shadow:0 32px 90px -22px rgba(0,0,0,.62); }
   .about-dialog-head{ display:flex; align-items:center; gap:.8rem; padding:1.1rem 1.25rem; color:#fffdf2; background:linear-gradient(145deg,#041810,#0d3322); border-bottom:1px solid rgba(232,207,122,.24); }
   .about-dialog-close{ margin-left:auto; width:2.4rem; height:2.4rem; border-radius:.7rem; color:#e8cf7a; font-size:1.45rem; }
   .about-dialog-close:hover{ background:rgba(201,162,39,.14); }
@@ -137,7 +138,19 @@
   .hero-proof-item+.hero-proof-item{ border-left:1px solid rgba(232,207,122,.13); }
   .hero-primary{ box-shadow:0 12px 28px -14px rgba(232,182,57,.75),inset 0 1px 0 rgba(255,255,255,.25); }
   .hero-primary:hover{ box-shadow:0 16px 32px -12px rgba(232,182,57,.8),inset 0 1px 0 rgba(255,255,255,.3); }
-  @media(max-width:640px){ .hero-proof-item:nth-child(3){display:none;} .hero-proof-item+.hero-proof-item{border-left:0;} .hero-proof-item:nth-child(2){border-left:1px solid rgba(232,207,122,.13);} }
+  @media(max-width:640px){
+    .hero-premium .relative.max-w-5xl{ padding:2.5rem 1rem 2.75rem; }
+    .hero-premium .hero-calligraphy{ margin-top:1.25rem; font-size:clamp(2rem,11vw,3rem); line-height:1.35; }
+    .hero-premium h2{ font-size:1rem; line-height:1.45; }
+    .hero-premium .hero-proof{ margin-top:2rem; border-radius:1rem; }
+    .hero-proof-item:nth-child(3){display:none;}
+    .hero-proof-item+.hero-proof-item{border-left:0;}
+    .hero-proof-item:nth-child(2){border-left:1px solid rgba(232,207,122,.13);}
+    .about-dialog-wrap{ align-items:flex-start; padding:.75rem; padding-top:max(.75rem,env(safe-area-inset-top)); padding-bottom:max(.75rem,env(safe-area-inset-bottom)); }
+    .about-dialog{ max-height:calc(100dvh - 1.5rem); border-radius:1rem; }
+    .about-dialog-head{ position:sticky; top:0; z-index:1; padding:.85rem 1rem; }
+    .about-dialog-close{ width:2.75rem; height:2.75rem; }
+  }
 
   #babReaderBackdrop{ position:fixed; inset:0; z-index:84; display:none; background:rgba(8,17,13,.58); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
   #babReaderBackdrop.open{ display:block; animation:chatBackdropIn .2s ease-out both; }
@@ -1812,14 +1825,16 @@ function openAbout(){
   aboutReturnFocus = document.activeElement;
   aboutBackdrop.classList.add('open'); aboutWrap.classList.add('open');
   aboutBackdrop.setAttribute('aria-hidden','false'); aboutWrap.setAttribute('aria-hidden','false');
+  document.body.classList.add('about-open');
   aboutCloseBtn.focus({preventScroll:true});
 }
 function closeAbout(){
   aboutBackdrop.classList.remove('open'); aboutWrap.classList.remove('open');
   aboutBackdrop.setAttribute('aria-hidden','true'); aboutWrap.setAttribute('aria-hidden','true');
+  document.body.classList.remove('about-open');
   if (aboutReturnFocus && aboutReturnFocus.isConnected) aboutReturnFocus.focus({preventScroll:true});
 }
-aboutAppBtn.addEventListener('click', openAbout);
+aboutAppBtn.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); openAbout(); closeSidebar(); });
 document.addEventListener('click', event => {
   if (event.target.closest('[data-open-about]')) openAbout();
 });
