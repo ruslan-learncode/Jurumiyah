@@ -3199,6 +3199,10 @@ function renderChatAnswer(bubble, source){
     underlinedText.push(content);
     return token;
   });
+  text = text
+    .replace(/\\?<\s*(\/?)\s*(?:i|em)\s*\\?>/gi, '*')
+    .replace(/\\(?=\r?\n)/g, '')
+    .replace(/\\([\\`*_{}\[\]()#+\-.!<>|])/g, '$1');
 
   let html = esc(text)
     .replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>')

@@ -99,6 +99,14 @@ def model_error_message(exc: Exception) -> str:
     detail = str(exc)
     if gemini_api_key:
         detail = detail.replace(gemini_api_key, "[API key disembunyikan]")
+    status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    if str(status_code) == "429" or "RESOURCE_EXHAUSTED" in detail.upper():
+        retry_match = re.search(r"Please retry in ([^\r\n]+)", detail, re.IGNORECASE)
+        retry_hint = f" Coba lagi dalam {retry_match.group(1).rstrip('. ')}." if retry_match else ""
+        return (
+            "Kuota Gemini untuk model yang tersedia sedang habis."
+            f"{retry_hint} Tunggu kuota reset atau periksa batas penggunaan dan billing di Google AI Studio."
+        )
     return detail.strip()[:500] or "Gemini gagal memproses permintaan."
 
 
@@ -107,7 +115,9 @@ def should_try_fallback(exc: Exception) -> bool:
     detail = str(exc).upper()
     exception_type = type(exc).__name__.lower()
     return (
-        str(status_code) == "503"
+        str(status_code) == "429"
+        or "RESOURCE_EXHAUSTED" in detail
+        or str(status_code) == "503"
         or "503 UNAVAILABLE" in detail
         or "timeout" in exception_type
         or "timed out" in detail.lower()
@@ -186,7 +196,10 @@ def chat(payload: ChatRequest, request: Request):
                             system_instruction=(
                                 "Kamu adalah asisten belajar yang ramah dan menjawab dalam bahasa "
                                 "yang digunakan pengguna, terutama bahasa Indonesia. Jawab sapaan "
-                                "dan pertanyaan umum secara langsung. Kamu juga membantu belajar "
+                                "hanya jika pengguna menyapa; untuk pertanyaan langsung, jangan "
+                                "membuka dengan salam yang tidak diminta. Jawab dengan ringkas, "
+                                "umumnya 3-5 poin bila perlu membuat daftar, dan jangan memotong "
+                                "jawaban di tengah kalimat. Kamu juga membantu belajar "
                                 "Islam, nahwu, dan sharaf. Untuk pertanyaan agama yang memerlukan "
                                 "fatwa atau memiliki perbedaan pendapat, jelaskan keterbatasanmu "
                                 "dan sarankan pengguna bertanya kepada ahli tepercaya. Jika tidak "
@@ -194,11 +207,13 @@ def chat(payload: ChatRequest, request: Request):
                                 "Jika menulis kalimat bahasa Arab, letakkan kalimat Arab pada baris "
                                 "tersendiri, pisahkan dari prosa Latin, dan gunakan harakat hanya "
                                 "jika yakin. "
-                                "**tebal**, *miring*, ++garis bawah++, rumus inline dengan "
+                                "Gunakan Markdown saja untuk format: **tebal**, *miring*, "
+                                "++garis bawah++, rumus inline dengan "
                                 "$...$ atau \\( ... \\), dan rumus blok dengan $$...$$ atau "
-                                "\\[ ... \\]. Jangan keluarkan HTML."
+                                "\\[ ... \\]. Jangan keluarkan HTML atau meng-escape tanda "
+                                "Markdown seperti titik pada nomor daftar."
                             ),
-                            max_output_tokens=350,
+                            max_output_tokens=700,
                             temperature=0.3,
                             thinking_config=types.ThinkingConfig(thinking_level="low"),
                         ),
