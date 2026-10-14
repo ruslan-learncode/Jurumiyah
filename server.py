@@ -27,9 +27,9 @@ client = genai.Client(
     api_key=gemini_api_key,
     http_options=types.HttpOptions(
         api_version="v1",
-        timeout=45_000,
+        timeout=20_000,
         retry_options=types.HttpRetryOptions(
-            attempts=2,
+            attempts=1,
             initial_delay=0.5,
             max_delay=1.0,
             http_status_codes=[408, 429, 500, 502, 503, 504],
@@ -102,10 +102,16 @@ def model_error_message(exc: Exception) -> str:
     return detail.strip()[:500] or "Gemini gagal memproses permintaan."
 
 
-def is_model_overloaded(exc: Exception) -> bool:
+def should_try_fallback(exc: Exception) -> bool:
     status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
     detail = str(exc).upper()
-    return str(status_code) == "503" or "503 UNAVAILABLE" in detail
+    exception_type = type(exc).__name__.lower()
+    return (
+        str(status_code) == "503"
+        or "503 UNAVAILABLE" in detail
+        or "timeout" in exception_type
+        or "timed out" in detail.lower()
+    )
 
 
 class ChatRequest(BaseModel):
@@ -205,7 +211,7 @@ def chat(payload: ChatRequest, request: Request):
                     if (
                         not answer_parts
                         and index + 1 < len(model_candidates)
-                        and is_model_overloaded(exc)
+                        and should_try_fallback(exc)
                     ):
                         logger.warning(
                             "chat request_id=%s model=%s unavailable; retrying with model=%s",

@@ -3,12 +3,12 @@
 The HTML frontend and `/api/chat` endpoint are served from the same FastAPI app.
 The endpoint uses Gemini's stable Generate Content streaming API and returns
 newline-delimited JSON, so the browser can show text as it arrives. Gemini
-requests have a 45-second HTTP timeout and at most two attempts for transient
-errors. If the selected model returns HTTP 503 before sending any text, the
-backend automatically retries with `GEMINI_FALLBACK_MODEL` (defaults to
-`gemini-3.5-flash-lite`). Successful answers are cached in memory for 15 minutes
-(up to 256 entries); cached answers are returned immediately. The cache is local
-to each process and clears when the backend restarts.
+requests have a 20-second HTTP timeout. If the selected model returns HTTP 503
+or times out before sending any text, the backend tries
+`GEMINI_FALLBACK_MODEL` (defaults to `gemini-3.5-flash-lite`). Successful
+answers are cached in memory for 15 minutes (up to 256 entries); cached answers
+are returned immediately. The cache is local to each process and clears when
+the backend restarts.
 The Gemini API key stays in the server environment and is never sent to the browser.
 
 ## Inspect chat latency
