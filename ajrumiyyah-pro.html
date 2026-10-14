@@ -768,10 +768,10 @@
 
       <div class="p-6 md:p-8">
         <div class="mb-4">
-          <label class="text-xs font-bold uppercase tracking-wider" style="color:var(--text-mute)">Kalimat Arab (tanpa harakat boleh)</label>
+          <label for="parserInput" class="text-xs font-bold uppercase tracking-wider" style="color:var(--text-mute)">Pilih atau tulis kalimat Arab (tanpa harakat boleh)</label>
           <textarea id="parserInput" rows="3" class="w-full mt-2 p-4 rounded-xl border ar resize-none"
             style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main);font-size:1.3rem;text-align:right;direction:rtl"
-            placeholder="مثال: ضرب زيد عمرا">ضَرَبَ زَيْدٌ عَمْرًا</textarea>
+            placeholder="مثال: ضَرَبَ زَيْدٌ عَمْرًا"></textarea>
         </div>
 
         <div class="grid md:grid-cols-[1fr_auto] gap-3 items-end mb-5">
@@ -793,12 +793,13 @@
           <button id="randomParserBtn" type="button" class="px-5 py-3 rounded-xl border border-yellow-500/35 font-bold text-sm transition" style="background:var(--emerald);color:var(--gold-soft)">✦ Kalimat Acak</button>
         </div>
 
-        <p class="text-xs mb-5" style="color:var(--text-mute)">Kalimat acak dipilih dari bank contoh. Hasil analisis mengikuti pola yang dikenali parser dan harakat pada kalimat.</p>
+        <p class="text-xs mb-3" style="color:var(--text-mute)">Pilih contoh, ambil kalimat acak, atau tulis sendiri. Hasil baru muncul setelah tombol Analisis I'rab ditekan.</p>
 
-        <button id="parseBtn" class="w-full md:w-auto px-8 py-3 rounded-xl bg-yellow-500 text-emerald-950 font-bold text-sm hover:bg-yellow-400 transition"><span class="inline-flex items-center gap-2"><span class="inline-grid w-5 h-5 place-items-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 7v8M7 11h8"/></svg></span>Analisis I'rab</span>
+        <button id="parseBtn" type="button" aria-controls="parserOutput" class="w-full md:w-auto px-8 py-3 rounded-xl bg-yellow-500 text-emerald-950 font-bold text-sm hover:bg-yellow-400 transition"><span class="inline-flex items-center gap-2"><span class="inline-grid w-5 h-5 place-items-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M11 7v8M7 11h8"/></svg></span>Analisis I'rab</span>
         </button>
 
-        <div id="parserOutput" class="mt-6"></div>
+        <p id="parserStatus" class="mt-4 text-sm" role="status" aria-live="polite" style="color:var(--text-mute)">Pilih contoh latihan, ambil kalimat acak, atau tulis kalimat Arab terlebih dahulu.</p>
+        <div id="parserOutput" class="mt-4"></div>
 
         <div class="mt-5 flex flex-wrap gap-3 text-xs">
           <span class="px-3 py-1 rounded-lg irab-rafa border">🟥 Rafa'</span>
@@ -2013,23 +2014,51 @@ function renderParserOutput(tokens){
   }));
 }
 
+const parserInput = document.getElementById('parserInput');
+const parserExamples = document.getElementById('parserExamples');
+const parserOutput = document.getElementById('parserOutput');
+const parserStatus = document.getElementById('parserStatus');
+
+function clearParserResults(status){
+  parserOutput.replaceChildren();
+  parserStatus.textContent = status;
+}
+
+function selectParserSentence(sentence, status){
+  parserInput.value = sentence;
+  clearParserResults(status);
+}
+
 document.getElementById('parseBtn').addEventListener('click', () => {
-  const text = document.getElementById('parserInput').value;
+  const text = parserInput.value.trim();
+  if (!text){
+    clearParserResults('Pilih contoh latihan, ambil kalimat acak, atau tulis kalimat Arab terlebih dahulu.');
+    parserInput.focus();
+    return;
+  }
   const tokens = parseKalimat(text);
+  if (!tokens.length){
+    clearParserResults('Kalimat belum berisi kata yang bisa dianalisis.');
+    return;
+  }
   renderParserOutput(tokens);
+  parserStatus.textContent = `Analisis selesai untuk ${tokens.length} kata. Klik kata pada hasil untuk menyorot penjelasannya.`;
   recordActivity();
   updateSideStats();
   updateAnalytics();
 });
 
-const parserInput = document.getElementById('parserInput');
-const parserExamples = document.getElementById('parserExamples');
-function analyzeExampleSentence(sentence){
-  parserInput.value = sentence;
-  document.getElementById('parseBtn').click();
-}
+parserInput.addEventListener('input', () => {
+  parserExamples.value = '';
+  clearParserResults(parserInput.value.trim()
+    ? 'Kalimat siap dianalisis. Tekan tombol Analisis I\'rab untuk melihat hasilnya.'
+    : 'Pilih contoh latihan, ambil kalimat acak, atau tulis kalimat Arab terlebih dahulu.');
+});
+
 parserExamples.addEventListener('change', () => {
-  if (parserExamples.value) analyzeExampleSentence(parserExamples.value);
+  if (parserExamples.value){
+    selectParserSentence(parserExamples.value, 'Contoh dipilih. Tekan tombol Analisis I\'rab untuk melihat hasilnya.');
+  }
 });
 document.getElementById('randomParserBtn').addEventListener('click', () => {
   const examples = [...parserExamples.options].filter(option => option.value);
@@ -2040,11 +2069,8 @@ document.getElementById('randomParserBtn').addEventListener('click', () => {
     choice = examples[(currentIndex + 1 + Math.floor(Math.random() * (examples.length - 1))) % examples.length];
   }
   parserExamples.value = choice.value;
-  analyzeExampleSentence(choice.value);
+  selectParserSentence(choice.value, 'Kalimat acak dipilih. Tekan tombol Analisis I\'rab untuk melihat hasilnya.');
 });
-
-// Initial parse
-document.getElementById('parseBtn').click();
 
 /* =========================================================
    DRAG & DROP GAME
