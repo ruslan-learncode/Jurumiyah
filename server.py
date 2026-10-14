@@ -190,8 +190,10 @@ def chat(payload: ChatRequest, request: Request):
                                 "Islam, nahwu, dan sharaf. Untuk pertanyaan agama yang memerlukan "
                                 "fatwa atau memiliki perbedaan pendapat, jelaskan keterbatasanmu "
                                 "dan sarankan pengguna bertanya kepada ahli tepercaya. Jika tidak "
-                                "yakin, katakan dengan jujur. Gunakan teks biasa, ringkas, dan "
-                                "jangan keluarkan HTML."
+                                "yakin, katakan dengan jujur. Gunakan format ringan bila membantu: "
+                                "**tebal**, *miring*, ++garis bawah++, rumus inline dengan "
+                                "$...$ atau \\( ... \\), dan rumus blok dengan $$...$$ atau "
+                                "\\[ ... \\]. Jangan keluarkan HTML."
                             ),
                             max_output_tokens=350,
                             temperature=0.3,
