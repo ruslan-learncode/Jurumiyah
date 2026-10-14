@@ -37,6 +37,7 @@ client = genai.Client(
     ),
 )
 model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
+fallback_model = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite").strip()
 
 # The HTML is served from this app, so same-origin requests need no CORS.
 # Add exact origins to CHAT_ALLOWED_ORIGINS only if hosting the frontend elsewhere.
@@ -101,6 +102,12 @@ def model_error_message(exc: Exception) -> str:
     return detail.strip()[:500] or "Gemini gagal memproses permintaan."
 
 
+def is_model_overloaded(exc: Exception) -> bool:
+    status_code = getattr(exc, "status_code", None) or getattr(exc, "code", None)
+    detail = str(exc).upper()
+    return str(status_code) == "503" or "503 UNAVAILABLE" in detail
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
 
@@ -154,35 +161,60 @@ def chat(payload: ChatRequest, request: Request):
         stream_open_ms = None
         first_text_ms = None
         try:
-            logger.info("chat request_id=%s gemini_request_started=true model=%s", request_id, model)
-            chunks = client.models.generate_content_stream(
-                model=model,
-                contents=message,
-                config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "Kamu adalah asisten belajar yang ramah dan menjawab dalam bahasa "
-                        "yang digunakan pengguna, terutama bahasa Indonesia. Jawab sapaan "
-                        "dan pertanyaan umum secara langsung. Kamu juga membantu belajar "
-                        "Islam, nahwu, dan sharaf. Untuk pertanyaan agama yang memerlukan "
-                        "fatwa atau memiliki perbedaan pendapat, jelaskan keterbatasanmu "
-                        "dan sarankan pengguna bertanya kepada ahli tepercaya. Jika tidak "
-                        "yakin, katakan dengan jujur. Gunakan teks biasa, ringkas, dan "
-                        "jangan keluarkan HTML."
-                    ),
-                    max_output_tokens=350,
-                    temperature=0.3,
-                    thinking_config=types.ThinkingConfig(thinking_level="low"),
-                ),
-            )
-            stream_open_ms = (time.perf_counter() - started_at) * 1000
             yield ndjson_event(cache=False)
-            for chunk in chunks:
-                text = chunk.text or ""
-                if text:
-                    if first_text_ms is None:
-                        first_text_ms = (time.perf_counter() - started_at) * 1000
-                    answer_parts.append(text)
-                    yield ndjson_event(delta=text)
+            model_candidates = [model]
+            if fallback_model and fallback_model != model:
+                model_candidates.append(fallback_model)
+
+            for index, candidate_model in enumerate(model_candidates):
+                logger.info(
+                    "chat request_id=%s gemini_request_started=true model=%s",
+                    request_id,
+                    candidate_model,
+                )
+                try:
+                    chunks = client.models.generate_content_stream(
+                        model=candidate_model,
+                        contents=message,
+                        config=types.GenerateContentConfig(
+                            system_instruction=(
+                                "Kamu adalah asisten belajar yang ramah dan menjawab dalam bahasa "
+                                "yang digunakan pengguna, terutama bahasa Indonesia. Jawab sapaan "
+                                "dan pertanyaan umum secara langsung. Kamu juga membantu belajar "
+                                "Islam, nahwu, dan sharaf. Untuk pertanyaan agama yang memerlukan "
+                                "fatwa atau memiliki perbedaan pendapat, jelaskan keterbatasanmu "
+                                "dan sarankan pengguna bertanya kepada ahli tepercaya. Jika tidak "
+                                "yakin, katakan dengan jujur. Gunakan teks biasa, ringkas, dan "
+                                "jangan keluarkan HTML."
+                            ),
+                            max_output_tokens=350,
+                            temperature=0.3,
+                            thinking_config=types.ThinkingConfig(thinking_level="low"),
+                        ),
+                    )
+                    stream_open_ms = (time.perf_counter() - started_at) * 1000
+                    for chunk in chunks:
+                        text = chunk.text or ""
+                        if text:
+                            if first_text_ms is None:
+                                first_text_ms = (time.perf_counter() - started_at) * 1000
+                            answer_parts.append(text)
+                            yield ndjson_event(delta=text)
+                    break
+                except Exception as exc:
+                    if (
+                        not answer_parts
+                        and index + 1 < len(model_candidates)
+                        and is_model_overloaded(exc)
+                    ):
+                        logger.warning(
+                            "chat request_id=%s model=%s unavailable; retrying with model=%s",
+                            request_id,
+                            candidate_model,
+                            model_candidates[index + 1],
+                        )
+                        continue
+                    raise
 
             answer = "".join(answer_parts).strip()
             if not answer:

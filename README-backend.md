@@ -4,9 +4,11 @@ The HTML frontend and `/api/chat` endpoint are served from the same FastAPI app.
 The endpoint uses Gemini's stable Generate Content streaming API and returns
 newline-delimited JSON, so the browser can show text as it arrives. Gemini
 requests have a 45-second HTTP timeout and at most two attempts for transient
-errors. Successful answers are cached in memory for 15 minutes (up to 256
-entries); cached answers are returned immediately. The cache is local to each
-process and clears when the backend restarts.
+errors. If the selected model returns HTTP 503 before sending any text, the
+backend automatically retries with `GEMINI_FALLBACK_MODEL` (defaults to
+`gemini-3.5-flash-lite`). Successful answers are cached in memory for 15 minutes
+(up to 256 entries); cached answers are returned immediately. The cache is local
+to each process and clears when the backend restarts.
 The Gemini API key stays in the server environment and is never sent to the browser.
 
 ## Inspect chat latency
@@ -25,6 +27,7 @@ to generation time or a buffered stream. `cacheHit: true` should complete quickl
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 $env:GEMINI_API_KEY = "your-gemini-api-key"
 $env:GEMINI_MODEL = "gemini-3.8-flash"
+$env:GEMINI_FALLBACK_MODEL = "gemini-3.5-flash-lite"
 .\.venv\Scripts\python.exe -m uvicorn server:app --reload
 ```
 
@@ -38,8 +41,9 @@ frontend origins, such as `https://example.com`. Before the main script in the
 HTML, set `window.CHAT_API_URL = "https://your-backend.example/api/chat"`.
 Do not use `*` for production origins.
 
-Configure `GEMINI_API_KEY` and, optionally, `GEMINI_MODEL` in the hosting
-provider's server-side environment settings. Never put the API key in HTML,
-JavaScript, or a public `.env` file. The endpoint currently limits each IP to
-10 requests per minute and each message to 2,000 characters; the in-memory
-rate limit resets when the process restarts and is per worker.
+Configure `GEMINI_API_KEY` and, optionally, `GEMINI_MODEL` and
+`GEMINI_FALLBACK_MODEL` in the hosting provider's server-side environment
+settings. Never put the API key in HTML, JavaScript, or a public `.env` file.
+The endpoint currently limits each IP to 10 requests per minute and each
+message to 2,000 characters; the in-memory rate limit resets when the process
+restarts and is per worker.
