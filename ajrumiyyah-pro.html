@@ -3130,10 +3130,15 @@ function findBotAnswer(question){
   const toks = q.split(/[^\p{L}']+/u).filter(Boolean).map(t => t.replace(/'/g, ''));
   if (/beda|banding/.test(q) && /rafa/.test(q) && /nashab/.test(q)) return COMPARE_RN;
   let best = null, sc = 0;
-  for (const e of KB) for (const k of e.keys){
-    const kk = clean(k).replace(/'/g, '');
-    if (kk.length < 3 && !/[\u0600-\u06ff]/.test(kk)) continue;
-    if ((toks.includes(kk) || (kk.includes(' ') && q.includes(kk))) && kk.length > sc){ sc = kk.length; best = e; }
+  for (const e of KB){
+    // Sapaan sudah ditangani di atas sebagai pesan utuh. Jangan pilih jawaban
+    // sapaan hanya karena kata seperti "halo" muncul bersama pertanyaan.
+    if (e.keys.some(k => ['salam','sapaan','halo','hai','assalam'].includes(clean(k).replace(/'/g, '')))) continue;
+    for (const k of e.keys){
+      const kk = clean(k).replace(/'/g, '');
+      if (kk.length < 3 && !/[\u0600-\u06ff]/.test(kk)) continue;
+      if ((toks.includes(kk) || (kk.includes(' ') && q.includes(kk))) && kk.length > sc){ sc = kk.length; best = e; }
+    }
   }
   // null berarti tidak ada jawaban lokal; sendChat akan meminta bantuan backend.
   return best ? best.ans : null;
