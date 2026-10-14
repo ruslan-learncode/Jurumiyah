@@ -3087,10 +3087,51 @@ function chapterForQuestion(question){
 
 function chapterAnswer(question, bab){
   const normalizedQuestion = norm(canonicalQuestion(question));
+  const wantsTable = /tabel|tabulasi/.test(normalizedQuestion);
+  const wantsSummary = /ringkasan|rangkuman|resume|ringkas/.test(normalizedQuestion);
+  const wantsCore = /inti|pokok utama|gagasan utama|esensi/.test(normalizedQuestion);
+  const wantsLearningPath = /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar/.test(normalizedQuestion);
   const wantsMatn = /matn|matan|teks|naskah|arab/.test(normalizedQuestion);
   const wantsTranslation = /arti|terjemah|makna|translate/.test(normalizedQuestion);
   const wantsExplanation = /syarah|jelaskan|penjelasan|maksud|kaidah/.test(normalizedQuestion);
   const wantsExample = /contoh|contohnya|kalimat|penerapan/.test(normalizedQuestion);
+  const plainText = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+  if (wantsLearningPath){
+    const steps = bab.id === 'bab-01'
+      ? [
+          'Baca matan pembuka perlahan dan kenali bagian basmalah, hamdalah, serta shalawat.',
+          'Pelajari arti tiap bagian, lalu identifikasi pengarang yang disebut dalam muqaddimah.',
+          'Ceritakan kembali maksud pembukaan kitab dengan kalimat sendiri.',
+          'Baca ulang dan hafalkan matan beserta artinya; setelah itu lanjutkan ke Bab 2 tentang kalām.'
+        ]
+      : [
+          `Baca matan Bab ${bab.num} dan terjemahnya untuk mendapat gambaran tentang ${bab.title}.`,
+          'Tandai istilah, definisi, pembagian, atau hukum yang disebut dalam bab.',
+          'Pelajari syarah dan cocokkan setiap kaidah dengan bagian matan yang menjelaskannya.',
+          'Uraikan kembali inti bab tanpa melihat kitab, lalu buat atau analisis satu contoh yang sesuai.',
+          'Ulangi dengan pertanyaan: apa definisinya, apa saja pembagiannya, dan bagaimana mengenali contohnya?'
+        ];
+    return `<strong>Alur Pembelajaran Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><ol class="list-decimal list-inside mt-2 space-y-1">${steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>`;
+  }
+  if (wantsCore){
+    return `<strong>Inti Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><br>${esc(plainText(bab.terjemah))}`;
+  }
+  if (wantsTable || wantsSummary){
+    const rows = [];
+    const summary = plainText(bab.terjemah);
+    if (summary) rows.push(['Inti bab', summary, '']);
+    if (bab.table?.headers?.length && bab.table.rows?.length){
+      bab.table.rows.forEach((cells, index) => rows.push([`Pokok ${index + 1}`, cells[1] || cells[0] || '', cells.slice(2).join(' — ')]));
+    } else {
+      (bab.matn || []).forEach((line, index) => rows.push([`Matan ${index + 1}`, plainText(line), '']));
+    }
+    const formatCell = value => esc(value).replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF][\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u0640\u064B-\u065F\u0670\u06D6-\u06ED\s،؛؟.,:;!?]*/g, match => {
+      const blockClass = match.trim().length >= 28 ? ' chat-arabic-block' : '';
+      return `<span class="chat-arabic${blockClass}" lang="ar" dir="rtl">${match}</span>`;
+    });
+    const tableRows = rows.map(([topic, detail, example]) => `<tr><td>${formatCell(topic)}</td><td>${formatCell(detail)}</td><td>${formatCell(example)}</td></tr>`).join('');
+    return `<strong>Ringkasan Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><div class="chat-table-wrap" role="region" aria-label="Tabel ringkasan bab" tabindex="0"><table class="chat-table"><thead><tr><th scope="col">Pokok bahasan</th><th scope="col">Ringkasan</th><th scope="col">Contoh / keterangan</th></tr></thead><tbody>${tableRows}</tbody></table></div>`;
+  }
   if (wantsExample && CHAPTER_GUIDANCE[bab.id]) return CHAPTER_GUIDANCE[bab.id];
   if (!wantsMatn && !wantsTranslation && !wantsExplanation && CHAPTER_GUIDANCE[bab.id]) return CHAPTER_GUIDANCE[bab.id];
   if (wantsMatn){
@@ -3122,6 +3163,11 @@ function findBotAnswer(question){
       : /pagi/.test(conversational) ? 'Selamat pagi!' : /siang/.test(conversational) ? 'Selamat siang!' : /sore/.test(conversational) ? 'Selamat sore!' : /malam/.test(conversational) ? 'Selamat malam!' : 'Halo!';
     return `${greeting} Ada yang ingin dipelajari hari ini? Saya bisa membantu soal Islam, nahwu, dan sharaf.`;
   }
+  const chapter = chapterForQuestion(question);
+  const chapterRequest = norm(q);
+  if (chapter && /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar|inti|pokok utama|gagasan utama|esensi|ringkasan|rangkuman|resume|ringkas|tabel|tabulasi/.test(chapterRequest)){
+    return chapterAnswer(question, chapter);
+  }
   const sentence = sentenceAnswer(question);
   if (sentence) return sentence;
   const particle = particleAnswer(question);
@@ -3132,8 +3178,7 @@ function findBotAnswer(question){
   if (termAnswer) return termAnswer;
   const importedAnswer = importedBankAnswer(question);
   if (importedAnswer) return importedAnswer;
-  const bab = chapterForQuestion(question);
-  if (bab) return chapterAnswer(question, bab);
+  if (chapter) return chapterAnswer(question, chapter);
   const toks = q.split(/[^\p{L}']+/u).filter(Boolean).map(t => t.replace(/'/g, ''));
   if (/beda|banding/.test(q) && /rafa/.test(q) && /nashab/.test(q)) return COMPARE_RN;
   let best = null, sc = 0;
@@ -3253,9 +3298,31 @@ function renderChatAnswer(bubble, source){
   };
   const lines = text.split(/\r?\n/);
   const renderedLines = [];
+  const renderTable = (headers, dataRows, alignments = []) => {
+    const headerHtml = headers.map((header, index) =>
+      `<th scope="col" style="text-align:${alignments[index] || 'left'}">${renderInlineMarkdown(header)}</th>`
+    ).join('');
+    const rows = dataRows.map(cells => `<tr>${headers.map((_header, index) =>
+      `<td style="text-align:${alignments[index] || 'left'}">${renderInlineMarkdown(cells[index] || '')}</td>`
+    ).join('')}</tr>`).join('');
+    return `<div class="chat-table-wrap" role="region" aria-label="Tabel jawaban" tabindex="0"><table class="chat-table"><thead><tr>${headerHtml}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  };
   for (let i = 0; i < lines.length; i++){
     const headerLine = lines[i];
     const separatorLine = lines[i + 1] || '';
+    if (headerLine.includes('\t') && separatorLine.includes('\t')){
+      const tsvRows = [headerLine.split('\t').map(cell => cell.trim())];
+      while (i + 1 < lines.length && lines[i + 1].includes('\t')){
+        tsvRows.push(lines[++i].split('\t').map(cell => cell.trim()));
+      }
+      const headers = tsvRows.shift();
+      if (headers.length > 1){
+        renderedLines.push(renderTable(headers, tsvRows));
+        continue;
+      }
+      renderedLines.push(renderInlineMarkdown(headerLine));
+      continue;
+    }
     const separatorCells = splitTableCells(separatorLine);
     const isTable = headerLine.includes('|') && separatorCells.length > 1 &&
       separatorCells.every(cell => /^:?-{3,}:?$/.test(cell));
@@ -3267,21 +3334,14 @@ function renderChatAnswer(bubble, source){
     const headers = splitTableCells(headerLine);
     const alignments = separatorCells.map(cell => cell.startsWith(':') && cell.endsWith(':')
       ? 'center' : cell.endsWith(':') ? 'right' : 'left');
-    const cellContent = (cells, index) => renderInlineMarkdown(cells[index] || '');
-    const headerHtml = headers.map((header, index) =>
-      `<th scope="col" style="text-align:${alignments[index] || 'left'}">${renderInlineMarkdown(header)}</th>`
-    ).join('');
     const rows = [];
     i += 2;
     while (i < lines.length && lines[i].includes('|') && lines[i].trim()){
-      const cells = splitTableCells(lines[i]);
-      rows.push(`<tr>${headers.map((_header, index) =>
-        `<td style="text-align:${alignments[index] || 'left'}">${cellContent(cells, index)}</td>`
-      ).join('')}</tr>`);
+      rows.push(splitTableCells(lines[i]));
       i++;
     }
     i--;
-    renderedLines.push(`<div class="chat-table-wrap" role="region" aria-label="Tabel jawaban" tabindex="0"><table class="chat-table"><thead><tr>${headerHtml}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`);
+    renderedLines.push(renderTable(headers, rows, alignments));
   }
   let html = renderedLines.join('<br>');
   html = html.replace(/CHATUNDERLINETOKEN(\d+)END/g, (_match, index) => `<u>${esc(underlinedText[Number(index)])}</u>`);

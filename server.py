@@ -211,7 +211,10 @@ def chat(payload: ChatRequest, request: Request):
                                 "++garis bawah++, rumus inline dengan "
                                 "$...$ atau \\( ... \\), dan rumus blok dengan $$...$$ atau "
                                 "\\[ ... \\]. Jangan keluarkan HTML atau meng-escape tanda "
-                                "Markdown seperti titik pada nomor daftar."
+                                "Markdown seperti titik pada nomor daftar. Jika pengguna meminta "
+                                "tabel, berikan dalam format tabel Markdown dengan header dan "
+                                "baris pemisah (| Kolom | Kolom | lalu |---|---|); jangan "
+                                "menyusun kolom hanya dengan tab atau spasi."
                             ),
                             max_output_tokens=700,
                             temperature=0.3,
