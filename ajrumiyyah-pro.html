@@ -6,6 +6,7 @@
 <title>Matn Al-Ajrumiyyah — Modul Interaktif Pro</title>
 <meta name="description" content="Modul interaktif Matn Al-Ajrumiyyah: teks berharakat, terjemah, syarah, parser i'rab, flashcard, dan kuis." />
 <meta name="theme-color" content="#143023" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script>tailwind.config={theme:{extend:{fontFamily:{display:["Plus Jakarta Sans","sans-serif"],body:["Inter","system-ui","sans-serif"]}}}}</script>
@@ -302,6 +303,7 @@
   }
   #chatBackdrop.open{ display:block; animation:chatBackdropIn .2s ease-out both; }
   body.chat-open #toTop{ opacity:0!important; pointer-events:none!important; }
+  body.chat-open #settingsBtn{ opacity:0; pointer-events:none; transform:translateY(-.35rem); }
   @keyframes chatBackdropIn{ from{opacity:0} to{opacity:1} }
   #chatbot.floating-open{
     position:fixed;
@@ -368,6 +370,7 @@
     overscroll-behavior:contain;
   }
   .chat-composer{ align-items:stretch; position:relative; z-index:3; pointer-events:auto; }
+  #chatbot.floating-open .chat-composer{ padding-top:.75rem; border-top:1px solid var(--border); background:linear-gradient(180deg,transparent,var(--bg-card) 28%); }
   .chat-composer input{ min-width:0; transition:border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
   .chat-composer input:focus{ border-color:var(--gold)!important; box-shadow:0 0 0 3px rgba(201,162,39,.16); }
   #chatFab{
@@ -385,12 +388,12 @@
     #chatWindow{ height:300px!important; }
     #chatFab{ width:48px!important; height:48px!important; right:1.5rem; bottom:5.25rem; }
     #chatFab .text-2xl{ font-size:1.25rem; }
-    #chatbot.floating-open{ left:50%; top:50%; right:auto; bottom:auto; width:calc(100vw - 1.25rem); height:min(780px, calc(100dvh - 1.25rem)); max-height:calc(100vh - 1.25rem); }
+    #chatbot.floating-open{ left:50%; top:max(.5rem,env(safe-area-inset-top)); right:auto; bottom:auto; width:calc(100vw - 1.25rem); height:min(780px, calc(var(--chat-viewport-height, 100dvh) - 1rem)); max-height:calc(var(--chat-viewport-height, 100dvh) - 1rem); transform:translateX(-50%)!important; }
     #chatbot.floating-open > .dark-glass{ padding:.8rem 1rem; }
     #chatbot.floating-open > .p-6:not(.dark-glass){ padding:.8rem 1rem 1rem; }
     #chatbot.floating-open #chatWindow{ height:auto!important; min-height:90px; }
     .chat-bubble{ max-width:calc(100% - 2.75rem); padding:.75rem .9rem; font-size:.86rem; }
-    #chatbot.floating-open .chat-composer{ flex-direction:row; padding-right:0; }
+    #chatbot.floating-open .chat-composer{ flex-direction:row; padding-right:0; padding-bottom:max(.15rem,env(safe-area-inset-bottom)); }
     #chatbot.floating-open .chat-composer button{ width:auto; padding-left:1rem; padding-right:1rem; }
   }
   #chatFab{
@@ -1066,14 +1069,6 @@
               • "Berapa tanda jazam?"
             </div>
           </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 mb-3">
-          <button class="quick-q chip px-3 py-1.5 rounded-lg text-xs font-semibold">Apa itu i'rab?</button>
-          <button class="quick-q chip px-3 py-1.5 rounded-lg text-xs font-semibold">Kana wa Akhawatuha</button>
-          <button class="quick-q chip px-3 py-1.5 rounded-lg text-xs font-semibold">Bedanya Rafa' dan Nashab</button>
-          <button class="quick-q chip px-3 py-1.5 rounded-lg text-xs font-semibold">Apa itu fa'il?</button>
-          <button class="quick-q chip px-3 py-1.5 rounded-lg text-xs font-semibold">Tanda jazam</button>
         </div>
 
         <div class="chat-composer flex gap-2">
@@ -3256,9 +3251,14 @@ const chatBackdrop = document.getElementById('chatBackdrop');
 let chatScrollY = 0;
 const chatHomeParent = chatbot.parentNode;
 const chatHomeNext = chatbot.nextSibling;
+function updateChatViewport(){
+  if (!chatbot.classList.contains('floating-open') || !window.visualViewport) return;
+  chatbot.style.setProperty('--chat-viewport-height', `${window.visualViewport.height}px`);
+}
 function setChatOpen(open){
   if (open){
     chatScrollY = window.scrollY;
+    settingsPanel.classList.remove('open');
     document.body.appendChild(chatbot); // Escape the main content stacking layer so the dialog sits above its backdrop.
   } else if (chatbot.parentNode === document.body){
     chatHomeParent.insertBefore(chatbot, chatHomeNext);
@@ -3268,11 +3268,15 @@ function setChatOpen(open){
   chatBackdrop.setAttribute('aria-hidden', String(!open));
   chatFab.setAttribute('aria-expanded', String(open));
   document.body.classList.toggle('chat-open', open);
+  if (open) requestAnimationFrame(updateChatViewport);
+  else chatbot.style.removeProperty('--chat-viewport-height');
   const restoreScroll = () => window.scrollTo(0, chatScrollY);
   requestAnimationFrame(restoreScroll);
   setTimeout(restoreScroll, 0);
   if (open) setTimeout(() => document.getElementById('chatInput').focus({ preventScroll:true }), 120);
 }
+window.visualViewport?.addEventListener('resize', updateChatViewport);
+window.visualViewport?.addEventListener('scroll', updateChatViewport);
 chatFab.addEventListener('click', () => setChatOpen(!chatbot.classList.contains('floating-open')));
 chatBackdrop.addEventListener('click', () => setChatOpen(false));
 chatClose.onclick = () => setChatOpen(false);
