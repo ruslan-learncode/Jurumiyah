@@ -295,6 +295,13 @@
   .chat-bubble .katex{ font-size:1.02em; color:inherit; }
   .chat-bubble .katex-display{ max-width:100%; overflow-x:auto; overflow-y:hidden; padding:.2rem 0; }
   .chat-bubble u{ text-decoration-thickness:1.5px; text-underline-offset:2px; }
+  .chat-bubble .chat-table-wrap{ box-sizing:border-box; width:100%; max-width:100%; margin:.65rem 0; overflow-x:auto; border:1px solid var(--border); border-radius:.7rem; overscroll-behavior-x:contain; }
+  .chat-bubble .chat-table{ width:max-content; min-width:100%; border-collapse:separate; border-spacing:0; font-size:.92em; line-height:1.45; }
+  .chat-bubble .chat-table th,.chat-bubble .chat-table td{ min-width:5.25rem; max-width:18rem; padding:.55rem .7rem; text-align:left; vertical-align:top; border-bottom:1px solid var(--border); border-right:1px solid var(--border); overflow-wrap:anywhere; }
+  .chat-bubble .chat-table th{ background:var(--emerald); color:#fff9e8; font-weight:700; }
+  .chat-bubble .chat-table tbody tr:nth-child(even){ background:var(--bg-soft); }
+  .chat-bubble .chat-table tr:last-child td{ border-bottom:0; }
+  .chat-bubble .chat-table th:last-child,.chat-bubble .chat-table td:last-child{ border-right:0; }
   .chat-bubble .chat-arabic{ font-family:'Scheherazade New','Amiri',serif; direction:rtl; unicode-bidi:isolate; line-height:2; }
   .chat-bubble .chat-arabic-block{ display:block; max-width:100%; margin:.45rem 0; text-align:right; font-size:1.24em; line-height:2.05; }
   .chat-user{ background:var(--emerald); color:#e8cf7a; margin-left:auto; border-bottom-right-radius:.25rem; }
@@ -3215,15 +3222,68 @@ function renderChatAnswer(bubble, source){
   text = text
     .replace(/\\?<\s*(\/?)\s*(?:i|em)\s*\\?>/gi, '*')
     .replace(/\\(?=\r?\n)/g, '')
-    .replace(/\\([\\`*_{}\[\]()#+\-.!<>|])/g, '$1');
+    .replace(/\\([\\`*_{}\[\]()#+\-.!<>])/g, '$1');
 
-  let html = esc(text)
+  const renderInlineMarkdown = value => esc(value)
+    .replace(/\\\|/g, '|')
     .replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>')
     .replace(/__([\s\S]+?)__/g, '<strong>$1</strong>')
     .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
     .replace(/_([^_\n]+)_/g, '<em>$1</em>')
-    .replace(/\+\+([^+\n]+)\+\+/g, '<u>$1</u>')
-    .replace(/\n/g, '<br>');
+    .replace(/\+\+([^+\n]+)\+\+/g, '<u>$1</u>');
+  const splitTableCells = line => {
+    let source = line.trim();
+    if (source.startsWith('|')) source = source.slice(1);
+    if (source.endsWith('|') && !source.endsWith('\\|')) source = source.slice(0, -1);
+    const cells = [];
+    let cell = '';
+    for (let i = 0; i < source.length; i++){
+      if (source[i] === '\\' && source[i + 1] === '|'){
+        cell += '|';
+        i++;
+      } else if (source[i] === '|'){
+        cells.push(cell.trim());
+        cell = '';
+      } else {
+        cell += source[i];
+      }
+    }
+    cells.push(cell.trim());
+    return cells;
+  };
+  const lines = text.split(/\r?\n/);
+  const renderedLines = [];
+  for (let i = 0; i < lines.length; i++){
+    const headerLine = lines[i];
+    const separatorLine = lines[i + 1] || '';
+    const separatorCells = splitTableCells(separatorLine);
+    const isTable = headerLine.includes('|') && separatorCells.length > 1 &&
+      separatorCells.every(cell => /^:?-{3,}:?$/.test(cell));
+    if (!isTable){
+      renderedLines.push(renderInlineMarkdown(headerLine));
+      continue;
+    }
+
+    const headers = splitTableCells(headerLine);
+    const alignments = separatorCells.map(cell => cell.startsWith(':') && cell.endsWith(':')
+      ? 'center' : cell.endsWith(':') ? 'right' : 'left');
+    const cellContent = (cells, index) => renderInlineMarkdown(cells[index] || '');
+    const headerHtml = headers.map((header, index) =>
+      `<th scope="col" style="text-align:${alignments[index] || 'left'}">${renderInlineMarkdown(header)}</th>`
+    ).join('');
+    const rows = [];
+    i += 2;
+    while (i < lines.length && lines[i].includes('|') && lines[i].trim()){
+      const cells = splitTableCells(lines[i]);
+      rows.push(`<tr>${headers.map((_header, index) =>
+        `<td style="text-align:${alignments[index] || 'left'}">${cellContent(cells, index)}</td>`
+      ).join('')}</tr>`);
+      i++;
+    }
+    i--;
+    renderedLines.push(`<div class="chat-table-wrap" role="region" aria-label="Tabel jawaban" tabindex="0"><table class="chat-table"><thead><tr>${headerHtml}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`);
+  }
+  let html = renderedLines.join('<br>');
   html = html.replace(/CHATUNDERLINETOKEN(\d+)END/g, (_match, index) => `<u>${esc(underlinedText[Number(index)])}</u>`);
   bubble.innerHTML = html;
 
