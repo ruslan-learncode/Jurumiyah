@@ -370,9 +370,9 @@
   #chatbot.floating-open #chatWindow::-webkit-scrollbar{ width:8px; }
   #chatbot.floating-open #chatWindow::-webkit-scrollbar-thumb{ background:var(--emerald-mid); border:2px solid transparent; background-clip:padding-box; }
   body.dark #chatbot.floating-open #chatWindow{ background:rgba(13,26,20,.82)!important; }
-  #chatbot.floating-open .chat-composer input{ height:42px; }
-  #chatbot.floating-open .chat-composer button{ height:42px; padding-top:0; padding-bottom:0; touch-action:manipulation; cursor:pointer; }
-  #chatbot.floating-open .chat-composer{ flex:0 0 auto; }
+  #chatbot.floating-open .chat-composer textarea{ min-height:46px; }
+  #chatbot.floating-open .chat-composer button{ height:46px; padding-top:0; padding-bottom:0; touch-action:manipulation; cursor:pointer; }
+  #chatbot.floating-open .chat-composer{ flex:0 0 auto; display:flex; flex-direction:column; gap:.4rem; }
   .chat-close{ color:rgba(232,207,122,.8); transition:color .2s ease, background .2s ease, transform .2s ease; }
   .chat-close:hover{ color:#fff4c8; background:rgba(201,162,39,.14); }
   .chat-close:hover{ transform:rotate(90deg); }
@@ -381,10 +381,21 @@
     scrollbar-gutter:stable;
     overscroll-behavior:contain;
   }
-  .chat-composer{ align-items:stretch; position:relative; z-index:3; pointer-events:auto; }
+  .chat-composer{ position:relative; z-index:3; pointer-events:auto; }
   #chatbot.floating-open .chat-composer{ padding-top:.75rem; border-top:1px solid var(--border); background:linear-gradient(180deg,transparent,var(--bg-card) 28%); }
-  .chat-composer input{ min-width:0; transition:border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
-  .chat-composer input:focus{ border-color:var(--gold)!important; box-shadow:0 0 0 3px rgba(201,162,39,.16); }
+  .chat-composer-row{display:flex;align-items:flex-end;gap:.6rem;}
+  .chat-composer textarea{ min-width:0; min-height:46px; max-height:120px; resize:none; line-height:1.45; border-color:var(--border)!important; transition:border-color .18s ease, box-shadow .18s ease, background-color .18s ease; }
+  .chat-composer textarea:focus{ border-color:rgba(201,162,39,.78)!important; box-shadow:0 0 0 2px rgba(201,162,39,.12); outline:none; }
+  #chatSend{display:grid;place-items:center;width:46px;min-width:46px;height:46px;padding:0;border-radius:.85rem;box-shadow:0 4px 10px rgba(20,59,41,.1);}
+  #chatSend:focus-visible{outline:3px solid rgba(201,162,39,.36);outline-offset:2px;}
+  .chat-suggestions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;}
+  .chat-suggestion{border:1px solid var(--border);border-radius:999px;padding:.38rem .65rem;color:var(--emerald-mid);background:var(--bg-card);font-size:.75rem;font-weight:650;transition:background .18s ease,border-color .18s ease,transform .18s ease;}
+  .chat-suggestion:hover{border-color:var(--gold);background:#c9a22718;transform:translateY(-1px);}
+  .chat-message-actions{display:flex;justify-content:flex-end;margin-top:.55rem;}
+  .chat-copy-button{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border);border-radius:.55rem;padding:.3rem .55rem;color:var(--text-mute);font-size:.72rem;font-weight:650;transition:color .18s ease,border-color .18s ease,background .18s ease;}
+  .chat-copy-button:hover{color:var(--emerald-mid);border-color:var(--gold);background:#c9a22712;}
+  #chatClear{border:1px solid rgba(232,207,122,.24);padding:.42rem .62rem;border-radius:.65rem;color:#e8cf7a;font-size:.73rem;font-weight:700;white-space:nowrap;}
+  #chatClear:hover{background:rgba(201,162,39,.14);color:#fff4c8;}
   #chatFab{
     left:auto!important;
     right:1.5rem;
@@ -405,8 +416,9 @@
     #chatbot.floating-open > .p-6:not(.dark-glass){ padding:.8rem 1rem 1rem; }
     #chatbot.floating-open #chatWindow{ height:auto!important; min-height:90px; }
     .chat-bubble{ max-width:calc(100% - 2.75rem); padding:.75rem .9rem; font-size:.86rem; }
-    #chatbot.floating-open .chat-composer{ flex-direction:row; padding-right:0; padding-bottom:max(.15rem,env(safe-area-inset-bottom)); }
-    #chatbot.floating-open .chat-composer button{ width:auto; padding-left:1rem; padding-right:1rem; }
+    #chatbot.floating-open .chat-composer{ padding-right:0; padding-bottom:max(.15rem,env(safe-area-inset-bottom)); }
+    #chatbot.floating-open .chat-composer-row{gap:.5rem;}
+    #chatbot.floating-open #chatSend{width:46px;min-width:46px;padding:0;}
   }
   #chatFab{
     width:auto!important; height:auto!important; min-height:3.5rem;
@@ -1054,15 +1066,16 @@
     </section>
 
     <!-- ============ AI CHATBOT ============ -->
-    <section id="chatbot" role="dialog" aria-modal="true" class="bab-card reveal scroll-mt-24 overflow-hidden">
+    <section id="chatbot" role="dialog" aria-modal="true" aria-labelledby="chatTitle" class="bab-card reveal scroll-mt-24 overflow-hidden">
       <div class="dark-glass p-6 md:p-8 border-b border-yellow-500/20">
         <div class="flex items-start gap-4">
           <div class="bab-num w-12 h-12 rounded-xl grid place-items-center text-sm shrink-0 module-section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="3"/><path d="M12 3v4M8 12h.01M16 12h.01M9 16h6M2 12h2M20 12h2"/></svg></div>
           <div>
-            <h2 class="font-display text-xl md:text-2xl font-bold text-yellow-200">Ustadz AI — Asisten Nahwu</h2>
+            <h2 id="chatTitle" class="font-display text-xl md:text-2xl font-bold text-yellow-200">Ustadz AI — Asisten Nahwu</h2>
             <p class="text-emerald-100/70 text-sm mt-1">Tanya apa saja tentang Matn Al-Ajrumiyyah — dijawab dengan syarah</p>
           </div>
-          <button id="chatClose" type="button" aria-label="Tutup chatbot" class="chat-close ml-auto w-9 h-9 rounded-lg grid place-items-center text-xl shrink-0">×</button>
+          <button id="chatClear" type="button" aria-label="Bersihkan percakapan">Bersihkan</button>
+          <button id="chatClose" type="button" aria-label="Tutup chatbot" class="chat-close w-9 h-9 rounded-lg grid place-items-center text-xl shrink-0">×</button>
         </div>
       </div>
 
@@ -1075,22 +1088,26 @@
             </div>
             <div class="chat-bubble chat-bot">
               <strong>السلام عليكم!</strong> Saya Ustadz AI, asisten Nahwu Anda.<br><br>
-              Silakan tanya tentang <em>Matn Al-Ajrumiyyah</em>. Contoh:<br>
-              • "Apa itu i'rab?"<br>
-              • "Jelaskan Kana wa Akhawatuha"<br>
-              • "Bedanya Rafa' dan Nashab?"<br>
-              • "Berapa tanda jazam?"
+              Silakan tanya tentang <em>Matn Al-Ajrumiyyah</em>, atau pilih pertanyaan berikut:
+              <div class="chat-suggestions">
+                <button type="button" class="chat-suggestion quick-q">Apa itu i'rab?</button>
+                <button type="button" class="chat-suggestion quick-q">Jelaskan Kana wa Akhawatuha</button>
+                <button type="button" class="chat-suggestion quick-q">Bedanya rafa' dan nashab?</button>
+                <button type="button" class="chat-suggestion quick-q">Buat tabel ringkasan Bab 2</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="chat-composer flex gap-2">
-          <input id="chatInput" type="text" placeholder="Tulis pertanyaan Anda..."
+        <div class="chat-composer">
+          <div class="chat-composer-row">
+            <textarea id="chatInput" rows="1" placeholder="Tulis pertanyaan…"
             class="flex-1 px-4 py-3 rounded-xl border text-sm"
-            style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)" />
-          <button id="chatSend" type="button" aria-label="Kirim pertanyaan" class="px-6 py-3 rounded-xl bg-yellow-500 text-emerald-950 font-bold text-sm hover:bg-yellow-400 transition">
-            Kirim →
-          </button>
+            style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)" aria-label="Tulis pertanyaan"></textarea>
+            <button id="chatSend" type="button" aria-label="Kirim pertanyaan" title="Kirim" class="bg-yellow-500 text-emerald-950 hover:bg-yellow-400 transition">
+              <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -3472,6 +3489,7 @@ function renderChatAnswer(bubble, source){
     if (lastIndex < value.length) fragment.append(value.slice(lastIndex));
     if (lastIndex > 0) node.replaceWith(fragment);
   });
+  addChatCopyAction(bubble);
 }
 
 function solveBasicArithmetic(question){
@@ -3588,6 +3606,43 @@ function solveBasicArithmetic(question){
   }
 }
 
+function addChatCopyAction(bubble){
+  if (!bubble || bubble.querySelector('.chat-copy-button')) return;
+  const actions = document.createElement('div');
+  actions.className = 'chat-message-actions';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'chat-copy-button';
+  button.setAttribute('aria-label', 'Salin jawaban');
+  button.textContent = 'Salin';
+  button.addEventListener('click', async () => {
+    const copy = bubble.cloneNode(true);
+    copy.querySelectorAll('.chat-message-actions').forEach(action => action.remove());
+    const value = copy.innerText.trim();
+    try {
+      if (navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(value);
+      } else {
+        const temporary = document.createElement('textarea');
+        temporary.value = value;
+        temporary.style.position = 'fixed';
+        temporary.style.opacity = '0';
+        document.body.appendChild(temporary);
+        temporary.select();
+        document.execCommand('copy');
+        temporary.remove();
+      }
+      button.textContent = 'Tersalin';
+      setTimeout(() => { button.textContent = 'Salin'; }, 1400);
+    } catch (error) {
+      button.textContent = 'Gagal menyalin';
+      setTimeout(() => { button.textContent = 'Salin'; }, 1800);
+    }
+  });
+  actions.appendChild(button);
+  bubble.appendChild(actions);
+}
+
 function addChatMessage(text, isUser){
   const win = document.getElementById('chatWindow');
   const wrap = document.createElement('div');
@@ -3599,6 +3654,7 @@ function addChatMessage(text, isUser){
     ${isUser ? '' : avatar}
     <div class="chat-bubble ${isUser ? 'chat-user' : 'chat-bot'} slide-up">${text}</div>
     ${isUser ? avatar : ''}`;
+  if (!isUser) addChatCopyAction(wrap.querySelector('.chat-bubble'));
   win.appendChild(wrap);
   win.scrollTop = win.scrollHeight;
 }
@@ -3619,15 +3675,18 @@ function addStreamingChatMessage(){
 }
 
 let lastUserQuestion = '';
+let chatGeneration = 0;
 
 function sendChat(){
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
+  const requestGeneration = chatGeneration;
   const previousQuestion = lastUserQuestion;
   lastUserQuestion = text;
   addChatMessage(esc(text), true);
   input.value = '';
+  input.style.height = '';
 
   // Typing indicator
   const win = document.getElementById('chatWindow');
@@ -3651,6 +3710,7 @@ function sendChat(){
       let streamedAnswer = '';
       try {
         const completeAnswer = await askChatBackend(chapterBackendMessage(text), chunk => {
+          if (requestGeneration !== chatGeneration) return;
           if (!answerBubble){
             typing.remove();
             answerBubble = addStreamingChatMessage();
@@ -3659,8 +3719,9 @@ function sendChat(){
           answerBubble.textContent = streamedAnswer;
           document.getElementById('chatWindow').scrollTop = document.getElementById('chatWindow').scrollHeight;
         });
-        if (answerBubble) renderChatAnswer(answerBubble, completeAnswer);
+        if (requestGeneration === chatGeneration && answerBubble) renderChatAnswer(answerBubble, completeAnswer);
       } catch (error) {
+        if (requestGeneration !== chatGeneration) return;
         typing.remove();
         console.error('Chat backend error:', error);
         const reason = error && error.message ? ` (${esc(error.message)})` : '';
@@ -3668,6 +3729,7 @@ function sendChat(){
         else addChatMessage(`Maaf, Gemini belum bisa menjawab pesan itu${reason}`, false);
       }
     }
+    if (requestGeneration !== chatGeneration) return;
     recordActivity();
     progress.xp += 1;
     saveProgress(progress);
@@ -3675,13 +3737,35 @@ function sendChat(){
   })();
 }
 
+const chatInput = document.getElementById('chatInput');
+const chatWindow = document.getElementById('chatWindow');
+const initialChatWelcome = chatWindow.firstElementChild.cloneNode(true);
 document.getElementById('chatSend').addEventListener('click', sendChat);
-document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
-document.querySelectorAll('.quick-q').forEach(b => {
-  b.addEventListener('click', () => {
-    document.getElementById('chatInput').value = b.textContent;
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = `${Math.min(chatInput.scrollHeight, 120)}px`;
+});
+chatInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing){
+    event.preventDefault();
     sendChat();
-  });
+  }
+});
+chatWindow.addEventListener('click', event => {
+  const suggestion = event.target.closest('.quick-q');
+  if (!suggestion) return;
+  chatInput.value = suggestion.textContent.trim();
+  chatInput.dispatchEvent(new Event('input', {bubbles:true}));
+  sendChat();
+});
+document.getElementById('chatClear').addEventListener('click', () => {
+  chatGeneration++;
+  lastUserQuestion = '';
+  chatWindow.replaceChildren(initialChatWelcome.cloneNode(true));
+  chatInput.value = '';
+  chatInput.style.height = '';
+  chatInput.focus({preventScroll:true});
+  chatWindow.scrollTop = 0;
 });
 
 // Floating chatbot: keep the conversation available without changing page position.
@@ -3690,6 +3774,7 @@ const chatbot = document.getElementById('chatbot');
 const chatClose = document.getElementById('chatClose');
 const chatBackdrop = document.getElementById('chatBackdrop');
 let chatScrollY = 0;
+let chatReturnFocus = null;
 const chatHomeParent = chatbot.parentNode;
 const chatHomeNext = chatbot.nextSibling;
 function updateChatViewport(){
@@ -3698,6 +3783,7 @@ function updateChatViewport(){
 }
 function setChatOpen(open){
   if (open){
+    chatReturnFocus = document.activeElement;
     chatScrollY = window.scrollY;
     settingsPanel.classList.remove('open');
     document.body.appendChild(chatbot); // Escape the main content stacking layer so the dialog sits above its backdrop.
@@ -3715,6 +3801,11 @@ function setChatOpen(open){
   requestAnimationFrame(restoreScroll);
   setTimeout(restoreScroll, 0);
   if (open) setTimeout(() => document.getElementById('chatInput').focus({ preventScroll:true }), 120);
+  else {
+    const returnTarget = chatReturnFocus;
+    chatReturnFocus = null;
+    setTimeout(() => returnTarget?.focus?.({preventScroll:true}), 0);
+  }
 }
 window.visualViewport?.addEventListener('resize', updateChatViewport);
 window.visualViewport?.addEventListener('scroll', updateChatViewport);
@@ -3726,7 +3817,24 @@ document.querySelectorAll('a[href="#chatbot"]').forEach(link => link.addEventLis
   setChatOpen(true);
 }));
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && chatbot.classList.contains('floating-open')) setChatOpen(false);
+  if (!chatbot.classList.contains('floating-open')) return;
+  if (e.key === 'Escape'){
+    setChatOpen(false);
+    return;
+  }
+  if (e.key !== 'Tab') return;
+  const focusable = [...chatbot.querySelectorAll('button:not([disabled]), textarea, [href], [tabindex]:not([tabindex="-1"])')]
+    .filter(element => element.getClientRects().length > 0);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && (document.activeElement === first || !chatbot.contains(document.activeElement))){
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && (document.activeElement === last || !chatbot.contains(document.activeElement))){
+    e.preventDefault();
+    first.focus();
+  }
 });
 
 /* =========================================================
