@@ -151,6 +151,10 @@
     .about-dialog-head{ position:sticky; top:0; z-index:1; padding:.85rem 1rem; }
     .about-dialog-close{ width:2.75rem; height:2.75rem; }
   }
+  @media(max-width:1023px){
+    #aboutAppFooter{ order:-1; padding:.75rem 1rem; border-top:0; border-bottom:1px solid rgba(232,207,122,.12); }
+    #aboutAppBtn{ min-height:2.75rem; }
+  }
 
   #babReaderBackdrop{ position:fixed; inset:0; z-index:84; display:none; background:rgba(8,17,13,.58); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
   #babReaderBackdrop.open{ display:block; animation:chatBackdropIn .2s ease-out both; }
