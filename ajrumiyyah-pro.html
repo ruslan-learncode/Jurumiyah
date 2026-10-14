@@ -296,6 +296,8 @@
   .chat-bubble .katex{ font-size:1.02em; color:inherit; }
   .chat-bubble .katex-display{ max-width:100%; overflow-x:auto; overflow-y:hidden; padding:.2rem 0; }
   .chat-bubble u{ text-decoration-thickness:1.5px; text-underline-offset:2px; }
+  .chat-bubble .chat-arabic{ font-family:'Scheherazade New','Amiri',serif; direction:rtl; unicode-bidi:isolate; line-height:2; }
+  .chat-bubble .chat-arabic-block{ display:block; max-width:100%; margin:.45rem 0; text-align:right; font-size:1.24em; line-height:2.05; }
   .chat-user{ background:var(--emerald); color:#e8cf7a; margin-left:auto; border-bottom-right-radius:.25rem; }
   .chat-bot{ background:var(--bg-soft); color:var(--text-main); border:1px solid var(--border); border-bottom-left-radius:.25rem; }
   body.dark .chat-user{ color:#f2e3b3; }
@@ -3233,6 +3235,146 @@ function renderChatAnswer(bubble, source){
       console.warn('Chat math rendering failed:', error);
     }
   }
+
+  // Isolate Arabic runs from surrounding Indonesian/Latin text so browser bidi
+  // rules do not reverse punctuation or put Arabic words on awkward lines.
+  const arabicPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF][\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\u0640\u064B-\u065F\u0670\u06D6-\u06ED\s،؛؟۔۞﴿﴾.,:;!?]*/g;
+  const walker = document.createTreeWalker(bubble, NodeFilter.SHOW_TEXT);
+  const arabicNodes = [];
+  while (walker.nextNode()) arabicNodes.push(walker.currentNode);
+  arabicNodes.forEach(node => {
+    if (node.parentElement?.closest('.katex')) return;
+    const value = node.nodeValue;
+    if (!/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(value)) return;
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
+    for (const match of value.matchAll(arabicPattern)){
+      if (match.index > lastIndex) fragment.append(value.slice(lastIndex, match.index));
+      const span = document.createElement('span');
+      span.className = 'chat-arabic' + (match[0].trim().length >= 28 ? ' chat-arabic-block' : '');
+      span.lang = 'ar';
+      span.dir = 'rtl';
+      span.textContent = match[0];
+      fragment.append(span);
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < value.length) fragment.append(value.slice(lastIndex));
+    if (lastIndex > 0) node.replaceWith(fragment);
+  });
+}
+
+function solveBasicArithmetic(question){
+  const rootSyntax = /\\sqrt|\u221A/i.test(String(question));
+  const rootInputHelp = 'Tulis bilangan yang ingin diakar, misalnya <code>\\sqrt{9}</code> atau <code>\\sqrt 9</code>.';
+  let expression = String(question).toLowerCase()
+    .replace(/\\\(|\\\)|\\\[|\\\]/g, '')
+    .replace(/\$/g, '')
+    .replace(/\\sqrt\s*\{([^{}]+)\}?/g, 'sqrt($1)')
+    .replace(/\\sqrt\s*(\d+(?:[.,]\d+)?|\([^()]+\))\}?/g, 'sqrt($1)')
+    .replace(/\\(?:times|cdot)/g, '*')
+    .replace(/\\div/g, '/')
+    .replace(/\^\s*\{([^{}]+)\}/g, '^($1)')
+    .replace(/[\u2212\u2013\u2014]/g, '-')
+    .replace(/[\u00D7\u2715]/g, '*')
+    .replace(/\u00F7/g, '/')
+    .replace(/\u221A\s*(\d+(?:[.,]\d+)?|\([^()]+\))/g, 'sqrt($1)')
+    .replace(/\bakar(?:\s+kuadrat)?(?:\s+dari)?\s*(\d+(?:[.,]\d+)?|\([^()]+\))/g, 'sqrt($1)')
+    .replace(/\bsqrt\s*(\d+(?:[.,]\d+)?|\([^()]+\))/g, 'sqrt($1)')
+    .replace(/\b(?:penjumlahan|jumlah)\s+(\d+(?:[.,]\d+)?)\s+(?:dan|dengan)\s+(\d+(?:[.,]\d+)?)/g, '$1 + $2')
+    .replace(/\b(?:pengurangan|selisih)\s+(?:antara\s+)?(\d+(?:[.,]\d+)?)\s+(?:dan|dengan)\s+(\d+(?:[.,]\d+)?)/g, '$1 - $2')
+    .replace(/\bperkalian\s+(\d+(?:[.,]\d+)?)\s+(?:dan|dengan)\s+(\d+(?:[.,]\d+)?)/g, '$1 * $2')
+    .replace(/\bpembagian\s+(\d+(?:[.,]\d+)?)\s+(?:dengan|oleh)\s+(\d+(?:[.,]\d+)?)/g, '$1 / $2')
+    .replace(/\bkuadrat(?:nya)?\s+(?:dari\s+)?(\d+(?:[.,]\d+)?)/g, '$1^2')
+    .replace(/(\d+(?:[.,]\d+)?)\s+(?:pangkat\s+dua|kuadrat)\b/g, '$1^2')
+    .replace(/(\d+(?:[.,]\d+)?)\s+pangkat\s+(\d+(?:[.,]\d+)?)/g, '$1^$2')
+    .replace(/\bpangkat\s+(\d+(?:[.,]\d+)?)\s+(?:dari\s+)?(\d+(?:[.,]\d+)?)/g, '$2^$1')
+    .replace(/(\d)\s*x\s*(?=[\d(])/gi, '$1 * ')
+    .replace(/\b(?:ditambah|tambahkan|tambah|plus|added\s+to)\b/g, '+')
+    .replace(/\b(?:dikurangi|kurangi|kurang|minus|subtract(?:ed)?)\b/g, '-')
+    .replace(/\b(?:dikalikan|dikali|kalikan|kali|times|multiplied\s+by)\b/g, '*')
+    .replace(/\b(?:dibagi|bagikan|bagi|divided\s+by|divide)\b/g, '/')
+    .replace(/(?<=\d),(?=\d)/g, '.')
+    .replace(/[?？！]/g, ' ')
+    .replace(/\b(?:berapa|apa|hasilnya?|dari|hitung(?:lah)?|tolong|nilai|adalah|sama\s+dengan|what\s+is|calculate|compute|please)\b/g, ' ')
+    .trim();
+
+  if (!/[+*/^\u221A-]|sqrt/.test(expression) || !/^[a-z\u221A\d\s.+*/()^()-]+$/.test(expression)) return rootSyntax ? rootInputHelp : null;
+  const tokens = expression.match(/\d+(?:\.\d+)?|sqrt|\u221A|[()+\-*/^]/g) || [];
+  if (expression.replace(/\s+/g, '') !== tokens.join('')) return rootSyntax ? rootInputHelp : null;
+  const numbers = tokens.filter(token => /^\d/.test(token));
+  if (numbers.length < 1 || (numbers.length < 2 && !tokens.some(token => token === '^' || token === 'sqrt' || token === '\u221A'))) return rootSyntax ? rootInputHelp : null;
+
+  let position = 0;
+  function parsePrimary(){
+    const token = tokens[position++];
+    if (token === 'sqrt' || token === '\u221A'){
+      if (tokens[position++] !== '(') throw new Error('Akar harus diikuti bilangan atau tanda kurung');
+      const value = parseSum();
+      if (tokens[position++] !== ')') throw new Error('Kurung akar tidak seimbang');
+      if (value < 0) throw new Error('Akar bilangan negatif tidak menghasilkan bilangan real');
+      return Math.sqrt(value);
+    }
+    if (token === '+' || token === '-'){
+      const value = parsePrimary();
+      return token === '-' ? -value : value;
+    }
+    if (token === '('){
+      const value = parseSum();
+      if (tokens[position++] !== ')') throw new Error('Kurung tidak seimbang');
+      return value;
+    }
+    if (!token || !/^\d/.test(token)) throw new Error('Ekspresi tidak lengkap');
+    return Number(token);
+  }
+  function parsePower(){
+    const base = parsePrimary();
+    if (tokens[position] === '^'){
+      position++;
+      return Math.pow(base, parseUnary());
+    }
+    return base;
+  }
+  function parseUnary(){
+    if (tokens[position] === '+' || tokens[position] === '-'){
+      const operator = tokens[position++];
+      const value = parseUnary();
+      return operator === '-' ? -value : value;
+    }
+    return parsePower();
+  }
+  function parseProduct(){
+    let value = parseUnary();
+    while (tokens[position] === '*' || tokens[position] === '/'){
+      const operator = tokens[position++];
+      const right = parseUnary();
+      if (operator === '/' && right === 0) throw new Error('Pembagian dengan nol');
+      value = operator === '*' ? value * right : value / right;
+    }
+    return value;
+  }
+  function parseSum(){
+    let value = parseProduct();
+    while (tokens[position] === '+' || tokens[position] === '-'){
+      const operator = tokens[position++];
+      const right = parseProduct();
+      value = operator === '+' ? value + right : value - right;
+    }
+    return value;
+  }
+
+  try {
+    const result = parseSum();
+    if (position !== tokens.length || !Number.isFinite(result)) return null;
+    const displayedExpression = tokens.join(' ').replace(/\s*([()+\-*/^])\s*/g, ' $1 ').replace(/\s+/g, ' ').trim()
+      .replace(/\*/g, '\u00D7').replace(/\//g, '\u00F7').replace(/\b(?:sqrt|\u221A)\b/g, '\u221A')
+      .replace(/(\d+(?:\.\d+)?) \^ 2\b/g, '$1²').replace(/(\d+(?:\.\d+)?) \^ 3\b/g, '$1³');
+    const displayedResult = new Intl.NumberFormat('id-ID', { maximumFractionDigits:8 }).format(result);
+    return `Hasil perhitungannya: <strong>${displayedExpression} = ${displayedResult}</strong>.`;
+  } catch (error) {
+    if (/dibagi|bagi|\u00F7|\//i.test(question) && /0/.test(question)) return 'Pembagian dengan nol tidak dapat dilakukan.';
+    if (error.message.includes('Akar bilangan negatif')) return 'Akar kuadrat dari bilangan negatif tidak menghasilkan bilangan real.';
+    return rootSyntax ? rootInputHelp : null;
+  }
 }
 
 function addChatMessage(text, isUser){
@@ -3289,7 +3431,7 @@ function sendChat(){
     const current = canonicalQuestion(text);
     const isPesantrenFollowUp = /maksud saya pesantrennya|pesantrennya/.test(current)
       && /darut tauhid|daarut tauhiid/.test(previous);
-    const localAnswer = findBotAnswer(isPesantrenFollowUp ? previousQuestion : text);
+    const localAnswer = solveBasicArithmetic(text) || findBotAnswer(isPesantrenFollowUp ? previousQuestion : text);
     if (localAnswer){
       typing.remove();
       addChatMessage(localAnswer, false);
