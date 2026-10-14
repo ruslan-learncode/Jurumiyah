@@ -3052,20 +3052,29 @@ function nahwuTermAnswer(question){
   return match ? match.entry.answer : null;
 }
 
+function containsWholePhrase(text, phrase){
+  const textWords = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const phraseWords = phrase.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (!phraseWords.length || phraseWords.length > textWords.length) return false;
+  return textWords.some((_, start) => phraseWords.every((word, offset) => textWords[start + offset] === word));
+}
+
 function chapterForQuestion(question){
   const normalizedQuestion = norm(canonicalQuestion(question));
   const numberMatch = normalizedQuestion.match(/(?:bab|chapter)\s*0?(\d{1,2})/);
   if (numberMatch) return BAB_DATA.find(bab => Number(bab.num) === Number(numberMatch[1]));
   const aliasMatch = BAB_DATA.map(bab => ({ bab, aliases:BAB_ALIASES[bab.id] || [] }))
     .flatMap(item => item.aliases.map(alias => ({ bab:item.bab, alias:norm(canonicalQuestion(alias)) })))
-    .filter(item => item.alias.length > 2 && normalizedQuestion.includes(item.alias))
+    .filter(item => item.alias.length > 2 && containsWholePhrase(normalizedQuestion, item.alias))
     .sort((left, right) => right.alias.length - left.alias.length)[0];
   if (aliasMatch) return aliasMatch.bab;
   return BAB_DATA.find(bab => {
     const title = norm(bab.title.toLowerCase()).replace(/[\-']/g, '');
     const shortTitle = title.replace(/^al/, '');
     const arabicTitle = norm(bab.ar);
-    return (title.length > 3 && normalizedQuestion.includes(title)) || (shortTitle.length > 3 && normalizedQuestion.includes(shortTitle)) || normalizedQuestion.includes(arabicTitle);
+    return (title.length > 3 && containsWholePhrase(normalizedQuestion, title)) ||
+      (shortTitle.length > 3 && containsWholePhrase(normalizedQuestion, shortTitle)) ||
+      containsWholePhrase(normalizedQuestion, arabicTitle);
   });
 }
 
