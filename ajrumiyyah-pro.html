@@ -3085,17 +3085,67 @@ function chapterForQuestion(question){
   });
 }
 
-function chapterAnswer(question, bab){
+function chaptersForQuestion(question){
+  const raw = String(question || '').toLowerCase();
+  if (/semua\s+bab|seluruh\s+bab/.test(raw)) return BAB_DATA;
+
+  const range = raw.match(/\bbab\s*0?(\d{1,2})\s*(?:-|–|sampai|hingga|s\/d|sd)\s*(?:bab\s*)?0?(\d{1,2})\b/);
+  if (range){
+    const first = Number(range[1]);
+    const last = Number(range[2]);
+    if (first >= 1 && last <= BAB_DATA.length && last >= first){
+      return BAB_DATA.filter(bab => Number(bab.num) >= first && Number(bab.num) <= last);
+    }
+  }
+
+  const list = raw.match(/\bbab(?:-bab)?\s+\d{1,2}(?:(?:\s*[,/&]\s*|\s+dan\s+|\s+serta\s+)(?:bab\s*)?\d{1,2})*/);
+  if (list){
+    const numbers = [...list[0].matchAll(/\d{1,2}/g)].map(match => Number(match[0]));
+    const chapters = [...new Set(numbers)].map(number => BAB_DATA.find(bab => Number(bab.num) === number)).filter(Boolean);
+    if (chapters.length) return chapters;
+  }
+
+  const single = chapterForQuestion(question);
+  return single ? [single] : [];
+}
+
+function chapterAnswerOne(question, bab){
   const normalizedQuestion = norm(canonicalQuestion(question));
   const wantsTable = /tabel|tabulasi/.test(normalizedQuestion);
   const wantsSummary = /ringkasan|rangkuman|resume|ringkas/.test(normalizedQuestion);
   const wantsCore = /inti|pokok utama|gagasan utama|esensi/.test(normalizedQuestion);
   const wantsLearningPath = /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar/.test(normalizedQuestion);
-  const wantsMatn = /matn|matan|teks|naskah|arab/.test(normalizedQuestion);
+  const wantsMatn = /matn|matan|mathan|teks\s+arab|naskah\s+arab/.test(normalizedQuestion);
   const wantsTranslation = /arti|terjemah|makna|translate/.test(normalizedQuestion);
-  const wantsExplanation = /syarah|jelaskan|penjelasan|maksud|kaidah/.test(normalizedQuestion);
+  const wantsSyarah = /syarah/.test(normalizedQuestion);
+  const wantsPembahasan = /pembahasan|pembahan|bahas/.test(normalizedQuestion);
+  const wantsExplanation = /jelaskan|penjelasan|maksud|kaidah/.test(normalizedQuestion);
   const wantsExample = /contoh|contohnya|kalimat|penerapan/.test(normalizedQuestion);
+  const wantsComplete = /lengkap|selengkapnya|semua bagian/.test(normalizedQuestion);
   const plainText = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+
+  const explicitSections = wantsMatn || wantsTranslation || wantsSyarah || wantsPembahasan;
+  if (explicitSections || wantsComplete){
+    const includeAll = wantsComplete && !explicitSections;
+    const sections = [];
+    if (wantsMatn || includeAll){
+      const lines = (bab.matn || []).map(line => `<div class="chat-arabic chat-arabic-block" lang="ar" dir="rtl">${line}</div>`).join('');
+      sections.push(`<section><strong>Matan Bab ${esc(bab.num)} — ${esc(bab.title)}</strong>${lines || '<p>Matan tidak tersedia untuk bab ini.</p>'}</section>`);
+    }
+    if (wantsTranslation || includeAll){
+      sections.push(`<section class="mt-3"><strong>Terjemah Bab ${esc(bab.num)}</strong><div>${bab.terjemah || 'Terjemah belum tersedia.'}</div></section>`);
+    }
+    if (wantsSyarah || includeAll || (wantsExplanation && !wantsPembahasan)){
+      const syarah = bab.syarah || BAB_SYARAH_TAMBAHAN[bab.id] || CHAPTER_GUIDANCE[bab.id] || '';
+      sections.push(`<section class="mt-3"><strong>Syarah Bab ${esc(bab.num)}</strong><div>${syarah || 'Syarah belum tersedia.'}</div></section>`);
+    }
+    if (wantsPembahasan || includeAll || (wantsExplanation && !wantsSyarah)){
+      const pembahasan = BAB_PEMBAHASAN[bab.id] || '';
+      sections.push(`<section class="mt-3"><strong>Pembahasan Bab ${esc(bab.num)}</strong><div>${pembahasan || 'Pembahasan belum tersedia.'}</div></section>`);
+    }
+    return sections.join('');
+  }
+
   if (wantsLearningPath){
     const steps = bab.id === 'bab-01'
       ? [
@@ -3142,6 +3192,27 @@ function chapterAnswer(question, bab){
   return `<strong>Bab ${bab.num} — ${esc(bab.title)}</strong><br>${bab.terjemah}`;
 }
 
+function chapterAnswer(question, chapters){
+  const selectedChapters = Array.isArray(chapters) ? chapters : [chapters];
+  return selectedChapters.map(bab => chapterAnswerOne(question, bab)).join('<hr class="my-4">');
+}
+
+function isSundaneseTranslationRequest(question){
+  const normalized = norm(canonicalQuestion(question));
+  return /sunda|sundanese|basa sunda|bahasa sunda/.test(normalized) && /terjemah|terjemahan|arti|makna|translate|alih bahasa/.test(normalized);
+}
+
+function chapterBackendMessage(question){
+  if (!isSundaneseTranslationRequest(question)) return question;
+  const chapters = chaptersForQuestion(question);
+  if (!chapters.length) return question;
+  const sources = chapters.map(bab => {
+    const translation = String(bab.terjemah || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
+    return `Bab ${bab.num} — ${bab.title}\nTerjemah Indonesia: ${translation}`;
+  }).join('\n\n');
+  return `[SUMBER TERJEMAH BAB AJRUMIYYAH]\nTerjemahkan seluruh terjemah Indonesia berikut ke bahasa Sunda (basa Sunda) dengan alami dan akurat. Pertahankan urutan serta label bab. Berikan terjemahan saja; jangan tambahkan matan, syarah, atau pembahasan.\n\n${sources}`;
+}
+
 function sentenceAnswer(question){
   const arabicWords = (question.match(/[\u0600-\u06ff]+/g) || []).filter(word => word.length > 1);
   const looksLikeSentence = arabicWords.length >= 2 && !/apa|jelaskan|arti|makna|bab/.test(question.toLowerCase());
@@ -3163,10 +3234,13 @@ function findBotAnswer(question){
       : /pagi/.test(conversational) ? 'Selamat pagi!' : /siang/.test(conversational) ? 'Selamat siang!' : /sore/.test(conversational) ? 'Selamat sore!' : /malam/.test(conversational) ? 'Selamat malam!' : 'Halo!';
     return `${greeting} Ada yang ingin dipelajari hari ini? Saya bisa membantu soal Islam, nahwu, dan sharaf.`;
   }
-  const chapter = chapterForQuestion(question);
+  const chapters = chaptersForQuestion(question);
+  const chapter = chapters[0];
   const chapterRequest = norm(q);
-  if (chapter && /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar|inti|pokok utama|gagasan utama|esensi|ringkasan|rangkuman|resume|ringkas|tabel|tabulasi/.test(chapterRequest)){
-    return chapterAnswer(question, chapter);
+  const wantsChapterContent = /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar|inti|pokok utama|gagasan utama|esensi|ringkasan|rangkuman|resume|ringkas|tabel|tabulasi|matan|matn|mathan|terjemah|arti|makna|translate|syarah|pembahasan|pembahan|lengkap|teks arab/.test(chapterRequest);
+  if (chapter && isSundaneseTranslationRequest(question)) return null;
+  if (chapter && wantsChapterContent){
+    return chapterAnswer(question, chapters);
   }
   const sentence = sentenceAnswer(question);
   if (sentence) return sentence;
@@ -3178,7 +3252,7 @@ function findBotAnswer(question){
   if (termAnswer) return termAnswer;
   const importedAnswer = importedBankAnswer(question);
   if (importedAnswer) return importedAnswer;
-  if (chapter) return chapterAnswer(question, chapter);
+  if (chapter) return chapterAnswer(question, chapters);
   const toks = q.split(/[^\p{L}']+/u).filter(Boolean).map(t => t.replace(/'/g, ''));
   if (/beda|banding/.test(q) && /rafa/.test(q) && /nashab/.test(q)) return COMPARE_RN;
   let best = null, sc = 0;
@@ -3576,7 +3650,7 @@ function sendChat(){
       let answerBubble = null;
       let streamedAnswer = '';
       try {
-        const completeAnswer = await askChatBackend(text, chunk => {
+        const completeAnswer = await askChatBackend(chapterBackendMessage(text), chunk => {
           if (!answerBubble){
             typing.remove();
             answerBubble = addStreamingChatMessage();

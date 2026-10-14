@@ -125,7 +125,7 @@ def should_try_fallback(exc: Exception) -> bool:
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(min_length=1, max_length=2000)
+    message: str = Field(min_length=1, max_length=20000)
 
 
 @app.get("/", include_in_schema=False)
@@ -216,7 +216,7 @@ def chat(payload: ChatRequest, request: Request):
                                 "baris pemisah (| Kolom | Kolom | lalu |---|---|); jangan "
                                 "menyusun kolom hanya dengan tab atau spasi."
                             ),
-                            max_output_tokens=700,
+                            max_output_tokens=3500 if message.startswith("[SUMBER TERJEMAH BAB AJRUMIYYAH]") else 700,
                             temperature=0.3,
                             thinking_config=types.ThinkingConfig(thinking_level="low"),
                         ),
