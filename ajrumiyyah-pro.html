@@ -154,9 +154,9 @@
     .about-dialog-close{ width:2.75rem; height:2.75rem; }
   }
   @media(max-width:1023px){
-    #sidebar{ overflow-y:auto; overflow-x:hidden; }
-    #sideNav{ flex:0 0 auto; overflow:visible; }
-    #aboutAppFooter{ order:0; margin-top:auto; padding:.75rem 1rem 1rem; border-top:1px solid rgba(232,207,122,.12); border-bottom:0; }
+    #sidebar{ height:100vh; height:100dvh; overflow:hidden; }
+    #sideNav{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
+    #aboutAppFooter{ flex:0 0 auto; margin-top:0; padding:.65rem 1rem calc(.65rem + env(safe-area-inset-bottom)); border-top:1px solid rgba(232,207,122,.12); border-bottom:0; }
     #aboutAppBtn{ min-height:2.75rem; }
   }
 
