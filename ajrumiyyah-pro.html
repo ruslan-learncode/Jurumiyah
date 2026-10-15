@@ -404,6 +404,7 @@
   #chatClear{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:1px solid rgba(232,207,122,.24);padding:.42rem .62rem;border-radius:.65rem;color:#e8cf7a;font-size:.73rem;font-weight:700;white-space:nowrap;}
   #chatClear svg{width:16px;height:16px;flex:none;}
   #chatClear:hover{background:rgba(201,162,39,.14);color:#fff4c8;}
+  #chatClear:focus-visible{outline:2px solid rgba(232,207,122,.75);outline-offset:2px;}
   #chatFab{
     left:auto!important;
     right:1.5rem;
@@ -424,7 +425,7 @@
     #chatbot.floating-open > .p-6:not(.dark-glass){ padding:.8rem 1rem 1rem; }
     #chatbot.floating-open #chatWindow{ height:auto!important; min-height:90px; }
     .chat-bubble{ max-width:calc(100% - 2.75rem); padding:.75rem .9rem; font-size:.86rem; }
-    #chatClear{width:2.25rem;height:2.25rem;padding:0;}
+    #chatClear{width:2.25rem;height:2.25rem;padding:0;border:0;}
     #chatClear .chat-clear-label{display:none;}
     #chatbot.floating-open .chat-composer{ padding-right:0; padding-bottom:max(.15rem,env(safe-area-inset-bottom)); }
     #chatbot.floating-open .chat-composer-row{gap:.5rem;}
