@@ -3274,6 +3274,9 @@ function findBotAnswer(question){
       : /pagi/.test(conversational) ? 'Selamat pagi!' : /siang/.test(conversational) ? 'Selamat siang!' : /sore/.test(conversational) ? 'Selamat sore!' : /malam/.test(conversational) ? 'Selamat malam!' : 'Halo!';
     return `${greeting} Ada yang ingin dipelajari hari ini? Saya bisa membantu soal Islam, nahwu, dan sharaf.`;
   }
+  if (/^((?:ok|okay|oke|baik|sip|siap|ya|iya|benar|betul|paham|mengerti))(?:\s+\1)*$/.test(conversational)){
+    return 'Baik. Silakan lanjutkan jika ada pertanyaan atau materi yang ingin dipelajari.';
+  }
   const chapters = chaptersForQuestion(question);
   const chapter = chapters[0];
   const chapterRequest = norm(q);
@@ -3669,52 +3672,89 @@ function addChatCopyAction(bubble){
 
 function chatFollowUpQuestions(question){
   const normalized = norm(canonicalQuestion(question));
+  if (isLowValueSuggestionContext(question)) return [];
   const chapters = chaptersForQuestion(question);
   const asksFor = {
     matn:/matn|matan|mathan|teks\s+arab|naskah\s+arab/.test(normalized),
     translation:/arti|terjemah|makna|translate/.test(normalized),
     syarah:/syarah|pembahasan|pembahan|jelaskan|penjelasan|maksud|kaidah/.test(normalized),
     summary:/ringkasan|rangkuman|resume|ringkas|inti|pokok utama/.test(normalized),
-    example:/contoh|penerapan|latihan|soal/.test(normalized)
+    example:/contoh|penerapan/.test(normalized),
+    exercise:/latihan|soal|kuis/.test(normalized)
   };
 
   if (chapters.length === 1){
     const bab = chapters[0];
     const prefix = `Bab ${bab.num}`;
     const options = [
-      {key:'matn', text:`Tampilkan matan ${prefix}`},
-      {key:'translation', text:`Terjemahkan ${prefix} ke bahasa Indonesia`},
-      {key:'example', text:`Beri contoh penerapan kaidah ${prefix}`},
-      {key:'syarah', text:`Jelaskan syarah ${prefix} beserta pembahasannya`},
-      {key:'summary', text:`Buat ringkasan tabel ${prefix}`}
+      {key:'matn', text:`Matan ${prefix}`},
+      {key:'translation', text:`Terjemah ${prefix}`},
+      {key:'example', text:`Contoh ${prefix}`},
+      {key:'syarah', text:`Syarah ${prefix}`},
+      {key:'summary', text:`Ringkasan tabel ${prefix}`},
+      {key:'exercise', text:`Latihan ${prefix}`}
     ];
     const next = options.filter(option => !asksFor[option.key]).slice(0, 3);
     return next.map(option => option.text);
   }
 
   if (chapters.length > 1){
+    const chapterNumbers = chapters.map(bab => Number(bab.num));
+    const isContinuous = chapterNumbers.every((number, index) => index === 0 || number === chapterNumbers[index - 1] + 1);
+    const chapterLabel = isContinuous && chapterNumbers.length > 3
+      ? `Bab ${chapterNumbers[0]}-${chapterNumbers[chapterNumbers.length - 1]}`
+      : `Bab ${chapterNumbers.join(', ')}`;
     return [
-      'Buat ringkasan tabel untuk bab-bab tersebut',
-      'Terjemahkan matan bab-bab tersebut ke bahasa Indonesia',
-      'Bandingkan kaidah utama dari bab-bab tersebut'
+      `Ringkasan tabel ${chapterLabel}`,
+      `Terjemah ${chapterLabel}`,
+      `Matan ${chapterLabel}`
     ].filter((_, index) => !(index === 0 && asksFor.summary) && !(index === 1 && asksFor.translation));
   }
 
   if (/banding|beda|perbedaan|persamaan|compare/.test(normalized)){
     const topic = followUpTopic(question);
-    return [`Beri contoh untuk membedakan ${topic}`, `Buat latihan singkat tentang ${topic}`];
+    if (!topic) return [];
+    return [
+      !asksFor.example && `Contoh perbedaan: ${topic}`,
+      !asksFor.exercise && `Latihan: ${topic}`
+    ].filter(Boolean);
   }
   const topic = followUpTopic(question);
-  return [`Beri contoh penerapan ${topic}`, `Buat ringkasan tabel tentang ${topic}`, `Buat latihan singkat tentang ${topic}`];
+  if (!topic) return [];
+  return [
+    !asksFor.example && `Contoh: ${topic}`,
+    !asksFor.summary && `Ringkasan tabel: ${topic}`,
+    !asksFor.exercise && `Latihan: ${topic}`
+  ].filter(Boolean).slice(0, 2);
 }
 
 function followUpTopic(question){
-  return String(question || '')
-    .replace(/^\s*(?:tolong|mohon)?\s*(?:jelaskan|terangkan|uraikan|apa(?:kah)?\s+(?:inti(?:\s+dari)?|itu|pengertian|maksud)|bagaimana|sebutkan|tampilkan|tulis|terjemahkan|terjemah|beri\s+contoh|contoh|bandingkan|buat(?:kan)?(?:\s+(?:ringkasan|rangkuman|tabel|latihan|soal))?)\s*/i, '')
-    .replace(/^(?:singkat|penerapan|kaidah|syarah|pembahasan|ringkasan|rangkuman|tabel|matan|matn|mathan|latihan|soal|kuis)\s+/i, '')
-    .replace(/^(?:dalam\s+bentuk\s+tabel|ke\s+bahasa\s+(?:indonesia|sunda)|tentang|mengenai|dari)\s+/i, '')
-    .replace(/[?!.]+$/g, '')
-    .trim() || 'topik ini';
+  let topic = String(question || '').replace(/[?!.]+$/g, '').trim();
+  const leadingPrompts = [
+    /^(?:tolong\s+|mohon\s+)?(?:beri|berikan)\s+contoh\s+(?:untuk\s+membedakan|penerapan|penerapannya)?\s*/i,
+    /^(?:buat(?:kan)?\s+)?(?:ringkasan|rangkuman|ringkas(?:an)?)\s*(?:dalam\s+bentuk\s+)?(?:tabel\s*)?(?:tentang|mengenai|untuk)?\s*/i,
+    /^(?:buat(?:kan)?\s+)?(?:latihan|soal|kuis)(?:\s+singkat)?\s*(?:tentang|mengenai|untuk)?\s*/i,
+    /^(?:tampilkan|tulis|terjemahkan|terjemah|jelaskan|terangkan|uraikan|kaidah|syarah|pembahasan|contoh)\s*/i,
+    /^(?:apa\s+)?(?:bedanya|perbedaan(?:\s+antara)?|bandingkan|bandingan)\s*[:：-]?\s*/i,
+    /^(?:apa\s+(?:inti(?:\s+dari)?|itu|pengertian|maksud(?:nya)?))\s*/i
+  ];
+  for (const prompt of leadingPrompts) topic = topic.replace(prompt, '').replace(/^[\s:：–—-]+/, '');
+  topic = topic
+    .replace(/^(?:(?:untuk|tentang|mengenai|dari|antara|penerapan|membedakan|kaidah|topik|ini|tersebut|keduanya|singkat)\s+)+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!topic || isLowValueSuggestionContext(topic)) return '';
+  const words = topic.split(' ');
+  if (words.length > 7 || topic.length > 56) return '';
+  return topic.charAt(0).toLocaleUpperCase('id-ID') + topic.slice(1);
+}
+
+function isLowValueSuggestionContext(question){
+  const normalized = norm(canonicalQuestion(question)).replace(/[^\p{L}\p{N}' ]+/gu, ' ').replace(/\s+/g, ' ').trim();
+  const courtesy = /^(?:(?:terima kasih|makasih|thanks|thank you|syukron|jazakallah(?:u)?(?: khairan)?|barakallah)(?: banyak)?|(?:assalamu alaikum|assalamualaikum|salam|selamat (?:pagi|siang|sore|malam)|pagi|siang|sore|malam|halo|hai|hello|hi))(?: ya| banyak)?$/;
+  return /^((?:ok|okay|oke|baik|sip|siap|ya|iya|benar|betul|paham|mengerti))(?:\s+\1)*$/u.test(normalized) ||
+    courtesy.test(normalized) ||
+    /^(?:maksud(?:nya)?\s+apa|apa\s+maksud(?:nya)?|saya\s+kurang\s+paham|kurang\s+jelas)$/.test(normalized);
 }
 
 function isContextualChatFollowUp(question){
@@ -3812,7 +3852,7 @@ function sendChat(){
   const contextualQuestion = isContextualFollowUp && lastChatTopicQuestion
     ? `${text} ${lastChatTopicQuestion}`
     : text;
-  if (!isContextualFollowUp) lastChatTopicQuestion = followUpTopic(text);
+  if (!isContextualFollowUp && !isLowValueSuggestionContext(text)) lastChatTopicQuestion = followUpTopic(text);
   lastUserQuestion = text;
   addChatMessage(esc(text), true);
   input.value = '';
