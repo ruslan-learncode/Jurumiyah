@@ -291,7 +291,7 @@
   .fc-progress{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem;color:var(--text-mute);font-size:.75rem;}
 
   /* Chatbot */
-  .chat-bubble{ max-width:85%; border-radius:1rem; padding:.85rem 1.1rem; line-height:1.55; font-size:.9rem; overflow-wrap:anywhere; }
+  .chat-bubble{ max-width:85%; border-radius:.75rem; padding:.85rem 1.1rem; line-height:1.55; font-size:.9rem; overflow-wrap:anywhere; }
   .chat-bubble .katex{ font-size:1.02em; color:inherit; }
   .chat-bubble .katex-display{ max-width:100%; overflow-x:auto; overflow-y:hidden; padding:.2rem 0; }
   .chat-bubble u{ text-decoration-thickness:1.5px; text-underline-offset:2px; }
@@ -304,8 +304,8 @@
   .chat-bubble .chat-table th:last-child,.chat-bubble .chat-table td:last-child{ border-right:0; }
   .chat-bubble .chat-arabic{ font-family:'Scheherazade New','Amiri',serif; direction:rtl; unicode-bidi:isolate; line-height:2; }
   .chat-bubble .chat-arabic-block{ display:block; max-width:100%; margin:.45rem 0; text-align:right; font-size:1.24em; line-height:2.05; }
-  .chat-user{ background:var(--emerald); color:#e8cf7a; margin-left:auto; border-bottom-right-radius:.25rem; }
-  .chat-bot{ background:var(--bg-soft); color:var(--text-main); border:1px solid var(--border); border-bottom-left-radius:.25rem; }
+  .chat-user{ background:var(--emerald); color:#e8cf7a; margin-left:auto; }
+  .chat-bot{ background:var(--bg-soft); color:var(--text-main); border:1px solid var(--border); }
   body.dark .chat-user{ color:#f2e3b3; }
   #chatbot{ scroll-margin-top:5.5rem; display:none; }
   #chatBackdrop{
@@ -393,10 +393,16 @@
   .chat-suggestion:hover{border-color:var(--gold);background:#c9a22718;transform:translateY(-1px);}
   .chat-followups{margin-top:.85rem;padding-top:.65rem;border-top:1px solid var(--border);}
   .chat-followups-label{margin:0 0 .45rem;color:var(--text-mute);font-size:.7rem;font-weight:700;letter-spacing:.02em;}
-  .chat-message-actions{display:flex;justify-content:flex-end;margin-top:.55rem;}
-  .chat-copy-button{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border);border-radius:.55rem;padding:.3rem .55rem;color:var(--text-mute);font-size:.72rem;font-weight:650;transition:color .18s ease,border-color .18s ease,background .18s ease;}
-  .chat-copy-button:hover{color:var(--emerald-mid);border-color:var(--gold);background:#c9a22712;}
-  #chatClear{border:1px solid rgba(232,207,122,.24);padding:.42rem .62rem;border-radius:.65rem;color:#e8cf7a;font-size:.73rem;font-weight:700;white-space:nowrap;}
+  .chat-message-actions{display:flex;align-items:center;justify-content:flex-end;gap:.35rem;margin-top:.55rem;}
+  .chat-action-button{display:inline-grid;place-items:center;width:2rem;height:2rem;border:1px solid transparent;border-radius:.65rem;padding:0;color:var(--text-mute);background:transparent;transition:color .18s ease,border-color .18s ease,background .18s ease,transform .18s ease;}
+  .chat-action-button:hover{color:var(--emerald-mid);border-color:var(--border);background:#c9a22712;}
+  .chat-action-button:active{transform:scale(.94);}
+  .chat-action-button[aria-pressed="true"]{color:var(--emerald-mid);border-color:rgba(47,110,71,.28);background:rgba(47,110,71,.1);}
+  .chat-action-button:focus-visible{outline:2px solid rgba(201,162,39,.65);outline-offset:2px;}
+  .chat-typing-dots::after{content:'…';display:inline-block;min-width:1.1em;animation:chatTypingPulse 1.2s ease-in-out infinite;}
+  @keyframes chatTypingPulse{0%,100%{opacity:.3}50%{opacity:1}}
+  #chatClear{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:1px solid rgba(232,207,122,.24);padding:.42rem .62rem;border-radius:.65rem;color:#e8cf7a;font-size:.73rem;font-weight:700;white-space:nowrap;}
+  #chatClear svg{width:16px;height:16px;flex:none;}
   #chatClear:hover{background:rgba(201,162,39,.14);color:#fff4c8;}
   #chatFab{
     left:auto!important;
@@ -418,6 +424,8 @@
     #chatbot.floating-open > .p-6:not(.dark-glass){ padding:.8rem 1rem 1rem; }
     #chatbot.floating-open #chatWindow{ height:auto!important; min-height:90px; }
     .chat-bubble{ max-width:calc(100% - 2.75rem); padding:.75rem .9rem; font-size:.86rem; }
+    #chatClear{width:2.25rem;height:2.25rem;padding:0;}
+    #chatClear .chat-clear-label{display:none;}
     #chatbot.floating-open .chat-composer{ padding-right:0; padding-bottom:max(.15rem,env(safe-area-inset-bottom)); }
     #chatbot.floating-open .chat-composer-row{gap:.5rem;}
     #chatbot.floating-open #chatSend{width:46px;min-width:46px;padding:0;}
@@ -1074,9 +1082,9 @@
           <div class="bab-num w-12 h-12 rounded-xl grid place-items-center text-sm shrink-0 module-section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="3"/><path d="M12 3v4M8 12h.01M16 12h.01M9 16h6M2 12h2M20 12h2"/></svg></div>
           <div>
             <h2 id="chatTitle" class="font-display text-xl md:text-2xl font-bold text-yellow-200">Ustadz AI — Asisten Nahwu</h2>
-            <p class="text-emerald-100/70 text-sm mt-1">Tanya apa saja tentang Matn Al-Ajrumiyyah — dijawab dengan syarah</p>
+            <p class="text-emerald-100/70 text-sm mt-1">Tanya seputar Al-Ajrumiyyah</p>
           </div>
-          <button id="chatClear" type="button" aria-label="Bersihkan percakapan">Bersihkan</button>
+          <button id="chatClear" type="button" aria-label="Bersihkan percakapan" title="Bersihkan percakapan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg><span class="chat-clear-label">Bersihkan</span></button>
           <button id="chatClose" type="button" aria-label="Tutup chatbot" class="chat-close w-9 h-9 rounded-lg grid place-items-center text-xl shrink-0">×</button>
         </div>
       </div>
@@ -1838,7 +1846,7 @@ aboutWrap.setAttribute('aria-hidden','true');
 aboutWrap.innerHTML = `<section class="about-dialog" role="dialog" aria-modal="true" aria-labelledby="aboutAppTitle">
   <header class="about-dialog-head"><span class="bab-num w-10 h-10 rounded-lg grid place-items-center shrink-0">ن</span><h2 id="aboutAppTitle" class="font-display font-bold text-lg">Tentang Aplikasi</h2><button type="button" class="about-dialog-close" aria-label="Tutup">×</button></header>
   <div class="p-5 md:p-7 space-y-5 text-sm leading-relaxed">
-    <p style="color:var(--text-soft)">Modul Interaktif Al-Ajrumiyyah ini dikembangkan oleh para asatidz dan santri <strong style="color:var(--text-main)">Pesantren Peradaban</strong> sebagai teman belajar bagi santri, pelajar, dan siapa pun yang ingin mengenal dasar-dasar bahasa Arab.</p>
+    <p style="color:var(--text-soft)">Modul Interaktif Al-Ajrumiyyah ini dikembangkan oleh santri <strong style="color:var(--text-main)">Pesantren Peradaban</strong> dengan bimbingan asatidz, sebagai teman belajar bagi santri, pelajar, dan siapa pun yang ingin mengenal dasar-dasar bahasa Arab.</p>
     <p style="color:var(--text-soft)">Sumber utama materi adalah kitab <em>Matn Al-Ajrumiyyah</em> karya Abu 'Abdillah Muhammad bin Muhammad bin Dawud Al-Sanhaji Al-Fasi, yang lebih dikenal sebagai Ibnu Ajurrum. Materi disusun bertahap dengan teks, terjemahan, syarah, contoh, serta fitur latihan dan pembelajaran interaktif. Harapannya, aplikasi ini membantu pengguna memahami struktur kalimat Arab dan membangun bekal awal untuk melanjutkan kajian Nahwu dengan lebih terarah.</p>
     <section class="rounded-xl border p-4" style="border-color:var(--border);background:var(--bg-soft);color:var(--text-soft)">
       <h3 class="font-bold mb-2" style="color:var(--text-main)">Sumber Rujukan</h3>
@@ -1850,8 +1858,8 @@ aboutWrap.innerHTML = `<section class="about-dialog" role="dialog" aria-modal="t
       </ol>
       <p class="mt-3 text-xs">Uraian berbahasa Indonesia dalam aplikasi merupakan ringkasan dan parafrasa untuk keperluan belajar. Untuk pembahasan lengkap, silakan merujuk ke karya aslinya; atribusi dan tautan sumber disertakan sebagai rujukan.</p>
     </section>
-    <div><h3 class="font-bold mb-2" style="color:var(--text-main)">Dikembangkan oleh</h3><ol class="about-team space-y-2" style="color:var(--text-soft)"><li>1. Ust. Muhamad Ruslanudin, S.Pd., Gr. (Asatidz)</li><li>2. Nabila Urfa Rosyida (Santri)</li></ol></div>
-    <div class="rounded-xl border p-4" style="border-color:var(--border);background:var(--bg-soft);color:var(--text-soft)"><strong style="color:var(--text-main)">Kritik dan saran</strong><br>Masukan Anda membantu kami menyempurnakan materi dan pengalaman belajar. Kirim email ke <a class="font-bold underline" style="color:var(--emerald-mid)" href="mailto:ruslanudinm@gmail.com">ruslanudinm@gmail.com</a>.</div>
+    <div><h3 class="font-bold mb-2" style="color:var(--text-main)">Tim Pengembang</h3><ol class="about-team space-y-2" style="color:var(--text-soft)"><li>1. Nabila Urfa Rosyida (Ketua Tim, Santri)</li><li>2. Nayla Muna Annazula (Anggota)</li><li>3. Muhamad Ruslanudin, S.Pd., Gr. (Pembimbing)</li></ol></div>
+    <div class="rounded-xl border p-4" style="border-color:var(--border);background:var(--bg-soft);color:var(--text-soft)"><strong style="color:var(--text-main)">Kritik dan saran</strong><br>Masukan Anda membantu kami menyempurnakan materi dan pengalaman belajar. Kirim email ke <a class="font-bold underline" style="color:var(--emerald-mid)" href="mailto:ruslanudinm@gmail.com">nabilaurfarosyida@gmail.com </a> atau <a class="font-bold underline" style="color:var(--emerald-mid)" href="mailto:ruslanudinm@gmail.com">ruslanudinm@gmail.com</a>.</div>
   </div>
 </section>`;
 document.body.append(aboutBackdrop, aboutWrap);
@@ -3262,6 +3270,31 @@ function sentenceAnswer(question){
   return `<strong>Analisis kalimat</strong><br><ol class="list-decimal list-inside mt-2 space-y-1">${rows}</ol><br><small>Analisis offline bersifat heuristik; harakat dan konteks lengkap menghasilkan ketepatan lebih tinggi.</small>`;
 }
 
+function irabStatusesAnswer(question){
+  const normalized = norm(canonicalQuestion(question)).replace(/[’'`]/g, '');
+  const containsTerm = pattern => pattern.test(normalized);
+  const statuses = [
+    {key:/\b(?:rafa|marfu)\b/, title:"Rafa'", status:'marfu’', example:'جَاءَ زَيْدٌ', note:'Zaid berstatus fa’il, sehingga isimnya marfu’ dengan dhammah.'},
+    {key:/\b(?:nashab|manshub)\b/, title:'Nashab', status:'manshub', example:'رَأَيْتُ زَيْدًا', note:'Zaid menjadi maf’ul bih, sehingga manshub dengan fathah.'},
+    {key:/\b(?:jazam|majzum)\b/, title:'Jazam', status:'majzum', example:'لَمْ يَكْتُبْ', note:'Fi’il mudhari’ يَكْتُبْ menjadi majzum setelah لَمْ, dengan tanda sukun.'},
+    {key:/\b(?:jar|khafadh|majrur)\b/, title:'Jar/Khafadh', status:'majrur', example:'مَرَرْتُ بِزَيْدٍ', note:'Zaid menjadi isim setelah huruf jar بِ, sehingga majrur dengan kasrah.'}
+  ].filter(status => containsTerm(status.key));
+  if (statuses.length < 2) return null;
+  const asksForExamples = /contoh|contohnya|penerapan|berikan|beri/.test(normalized);
+  const asksForComparison = /beda|perbedaan|banding|compare/.test(normalized);
+  if (statuses.length === 2 && asksForComparison && !asksForExamples) return null;
+  if (/latihan|soal|kuis/.test(normalized)){
+    const exercises = statuses.map(status => `<li class="mb-2"><strong>Tentukan status i’rab kata terakhir pada <span class="chat-arabic" lang="ar" dir="rtl">${status.example}</span>.</strong><details class="mt-1"><summary class="cursor-pointer text-emerald-700">Lihat jawaban</summary><div class="mt-1">${status.status}: ${status.note}</div></details></li>`).join('');
+    return `<strong>Latihan status i’rab</strong><ol class="list-decimal list-inside mt-2">${exercises}</ol>`;
+  }
+  if (/ringkasan|rangkuman|tabel|tabulasi/.test(normalized)){
+    const rows = statuses.map(status => `<tr><th scope="row">${status.title}</th><td>${status.status}</td><td><span class="chat-arabic" lang="ar" dir="rtl">${status.example}</span></td><td>${status.note}</td></tr>`).join('');
+    return `<strong>Ringkasan status i’rab</strong><div class="chat-table-wrap" role="region" aria-label="Tabel status i'rab" tabindex="0"><table class="chat-table"><thead><tr><th scope="col">Jenis</th><th scope="col">Status</th><th scope="col">Contoh</th><th scope="col">Keterangan</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  const rows = statuses.map(status => `<li class="mb-2"><strong>${status.title}</strong> — <span class="chat-arabic" lang="ar" dir="rtl">${status.example}</span><br>${status.note}</li>`).join('');
+  return `<strong>Contoh status i’rab</strong><ol class="list-decimal list-inside mt-2">${rows}</ol>`;
+}
+
 function findBotAnswer(question){
   const clean = s => canonicalQuestion(s);
   const q = clean(question);
@@ -3277,6 +3310,8 @@ function findBotAnswer(question){
   if (/^((?:ok|okay|oke|baik|sip|siap|ya|iya|benar|betul|paham|mengerti))(?:\s+\1)*$/.test(conversational)){
     return 'Baik. Silakan lanjutkan jika ada pertanyaan atau materi yang ingin dipelajari.';
   }
+  const irabExamples = irabStatusesAnswer(question);
+  if (irabExamples) return irabExamples;
   const chapters = chaptersForQuestion(question);
   const chapter = chapters[0];
   const chapterRequest = norm(q);
@@ -3634,15 +3669,25 @@ function solveBasicArithmetic(question){
 }
 
 function addChatCopyAction(bubble){
-  if (!bubble || bubble.querySelector('.chat-copy-button')) return;
+  if (!bubble || bubble.querySelector('.chat-message-actions')) return;
   const actions = document.createElement('div');
   actions.className = 'chat-message-actions';
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'chat-copy-button';
-  button.setAttribute('aria-label', 'Salin jawaban');
-  button.textContent = 'Salin';
-  button.addEventListener('click', async () => {
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', 'Aksi jawaban');
+  const makeActionButton = (label, svg, toggle = false) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'chat-action-button';
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    if (toggle) button.setAttribute('aria-pressed', 'false');
+    button.innerHTML = svg;
+    return button;
+  };
+  const copyIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg>';
+  const copiedIcon = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>';
+  const copyButton = makeActionButton('Salin jawaban', copyIcon);
+  copyButton.addEventListener('click', async () => {
     const copy = bubble.cloneNode(true);
     copy.querySelectorAll('.chat-message-actions, .chat-followups').forEach(action => action.remove());
     const value = copy.innerText.trim();
@@ -3659,14 +3704,32 @@ function addChatCopyAction(bubble){
         document.execCommand('copy');
         temporary.remove();
       }
-      button.textContent = 'Tersalin';
-      setTimeout(() => { button.textContent = 'Salin'; }, 1400);
+      copyButton.innerHTML = copiedIcon;
+      copyButton.setAttribute('aria-label', 'Jawaban tersalin');
+      copyButton.title = 'Jawaban tersalin';
+      setTimeout(() => {
+        copyButton.innerHTML = copyIcon;
+        copyButton.setAttribute('aria-label', 'Salin jawaban');
+        copyButton.title = 'Salin jawaban';
+      }, 1400);
     } catch (error) {
-      button.textContent = 'Gagal menyalin';
-      setTimeout(() => { button.textContent = 'Salin'; }, 1800);
+      copyButton.setAttribute('aria-label', 'Gagal menyalin jawaban');
+      copyButton.title = 'Gagal menyalin';
+      setTimeout(() => {
+        copyButton.setAttribute('aria-label', 'Salin jawaban');
+        copyButton.title = 'Salin jawaban';
+      }, 1800);
     }
   });
-  actions.appendChild(button);
+  const likeButton = makeActionButton('Suka jawaban', '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v11H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3Zm0 0 5-8c2 0 3 1.5 2.5 3.5L13 10h5.5a2.5 2.5 0 0 1 2.4 3.2l-1.8 6A2.5 2.5 0 0 1 16.7 21H7"></path></svg>', true);
+  const dislikeButton = makeActionButton('Tidak suka jawaban', '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 14V3h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3Zm0 0-5 8c-2 0-3-1.5-2.5-3.5L11 14H5.5a2.5 2.5 0 0 1-2.4-3.2l1.8-6A2.5 2.5 0 0 1 7.3 3H17"></path></svg>', true);
+  const feedbackButtons = [likeButton, dislikeButton];
+  feedbackButtons.forEach(button => button.addEventListener('click', () => {
+    const wasSelected = button.getAttribute('aria-pressed') === 'true';
+    feedbackButtons.forEach(item => item.setAttribute('aria-pressed', 'false'));
+    if (!wasSelected) button.setAttribute('aria-pressed', 'true');
+  }));
+  actions.append(likeButton, dislikeButton, copyButton);
   bubble.appendChild(actions);
 }
 
@@ -3711,27 +3774,26 @@ function chatFollowUpQuestions(question){
     ].filter((_, index) => !(index === 0 && asksFor.summary) && !(index === 1 && asksFor.translation));
   }
 
+  const nahwuTopic = /\b(?:nahwu|ajrumiyyah|jurumiyyah|sharaf|sorof|tasrif|kalam|kalām|irab|i.?rab|rafa|marfu|nashab|manshub|jazam|majzum|khafadh|majrur|isim|fiil|harf|amil|fail|maf.?ul|mubtada|khabar|kana|inna|mudhari|af.?al|tamyiz|badal|athaf|taukid|na.?at|masdar|zharaf|hal|mabni|jar)\b/;
+  if (!nahwuTopic.test(normalized)) return [];
+
   if (/banding|beda|perbedaan|persamaan|compare/.test(normalized)){
-    const topic = followUpTopic(question);
-    if (!topic) return [];
     return [
-      !asksFor.example && `Contoh perbedaan: ${topic}`,
-      !asksFor.exercise && `Latihan: ${topic}`
+      !asksFor.example && 'Beri contoh perbedaannya',
+      !asksFor.exercise && 'Buat latihan singkat tentang ini'
     ].filter(Boolean);
   }
-  const topic = followUpTopic(question);
-  if (!topic) return [];
   return [
-    !asksFor.example && `Contoh: ${topic}`,
-    !asksFor.summary && `Ringkasan tabel: ${topic}`,
-    !asksFor.exercise && `Latihan: ${topic}`
+    !asksFor.example && 'Beri contoh penerapannya',
+    !asksFor.summary && 'Buat ringkasan tabel',
+    !asksFor.exercise && 'Buat latihan singkat tentang ini'
   ].filter(Boolean).slice(0, 2);
 }
 
 function followUpTopic(question){
   let topic = String(question || '').replace(/[?!.]+$/g, '').trim();
   const leadingPrompts = [
-    /^(?:tolong\s+|mohon\s+)?(?:beri|berikan)\s+contoh\s+(?:untuk\s+membedakan|penerapan|penerapannya)?\s*/i,
+    /^(?:tolong\s+|mohon\s+)?(?:beri|berikan)\s+contoh\s+(?:untuk\s+(?:membedakan|ini\s+semua|semua)|penerapan|penerapannya)?\s*/i,
     /^(?:buat(?:kan)?\s+)?(?:ringkasan|rangkuman|ringkas(?:an)?)\s*(?:dalam\s+bentuk\s+)?(?:tabel\s*)?(?:tentang|mengenai|untuk)?\s*/i,
     /^(?:buat(?:kan)?\s+)?(?:latihan|soal|kuis)(?:\s+singkat)?\s*(?:tentang|mengenai|untuk)?\s*/i,
     /^(?:tampilkan|tulis|terjemahkan|terjemah|jelaskan|terangkan|uraikan|kaidah|syarah|pembahasan|contoh)\s*/i,
@@ -3740,7 +3802,7 @@ function followUpTopic(question){
   ];
   for (const prompt of leadingPrompts) topic = topic.replace(prompt, '').replace(/^[\s:：–—-]+/, '');
   topic = topic
-    .replace(/^(?:(?:untuk|tentang|mengenai|dari|antara|penerapan|membedakan|kaidah|topik|ini|tersebut|keduanya|singkat)\s+)+/, '')
+    .replace(/^(?:(?:untuk|tentang|mengenai|dari|antara|penerapan|membedakan|kaidah|topik|ini|semua|tersebut|keduanya|singkat)\s+)+/, '')
     .replace(/\s+/g, ' ')
     .trim();
   if (!topic || isLowValueSuggestionContext(topic)) return '';
@@ -3863,6 +3925,14 @@ function sendChat(){
   const typing = document.createElement('div');
   typing.className = 'flex gap-3 typing-indicator';
   typing.innerHTML = `<div class="w-9 h-9 rounded-full grid place-items-center shrink-0 dark-glass"><span class="ar-display text-yellow-300 text-sm">ن</span></div><div class="chat-bubble chat-bot"><span class="animate-pulse">● ● ●</span></div>`;
+  typing.setAttribute('role', 'status');
+  typing.setAttribute('aria-label', 'Ustadz AI sedang menyiapkan jawaban');
+  const typingBubble = typing.querySelector('.chat-bubble');
+  typingBubble.textContent = 'Ustadz AI sedang menyiapkan jawaban';
+  const typingDots = document.createElement('span');
+  typingDots.className = 'chat-typing-dots';
+  typingDots.setAttribute('aria-hidden', 'true');
+  typingBubble.appendChild(typingDots);
   win.appendChild(typing);
   win.scrollTop = win.scrollHeight;
 
