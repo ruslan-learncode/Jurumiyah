@@ -9,6 +9,7 @@ import threading
 import uuid
 from collections import OrderedDict, defaultdict, deque
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -124,8 +125,14 @@ def should_try_fallback(exc: Exception) -> bool:
     )
 
 
+class ChatHistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=3000)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=20000)
+    history: list[ChatHistoryMessage] = Field(default_factory=list, max_length=12)
 
 
 @app.get("/", include_in_schema=False)
@@ -139,7 +146,22 @@ def chat(payload: ChatRequest, request: Request):
     if not message:
         raise HTTPException(status_code=400, detail="Pesan masih kosong.")
 
-    key = cache_key(message)
+    history = payload.history[-12:]
+    if history:
+        history_text = "\n".join(
+            f"{'Pengguna' if item.role == 'user' else 'Asisten'}: {item.content.strip()}"
+            for item in history
+            if item.content.strip()
+        )
+        prompt = (
+            "Riwayat percakapan sebelumnya (gunakan untuk memahami rujukan dan konteks; "
+            "jawab pesan terbaru, jangan mengulang seluruh riwayat):\n"
+            f"{history_text}\n\nPertanyaan terbaru pengguna: {message}"
+        )
+    else:
+        prompt = message
+
+    key = cache_key(json.dumps({"history": [item.model_dump() for item in history], "message": message}, ensure_ascii=False))
     request_id = uuid.uuid4().hex[:12]
     cached_answer = get_cached_answer(key)
     if cached_answer is not None:
@@ -191,7 +213,7 @@ def chat(payload: ChatRequest, request: Request):
                 try:
                     chunks = client.models.generate_content_stream(
                         model=candidate_model,
-                        contents=message,
+                        contents=prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=(
                                 "Kamu adalah asisten belajar yang ramah dan menjawab dalam bahasa "

@@ -391,6 +391,8 @@
   .chat-suggestions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.8rem;}
   .chat-suggestion{border:1px solid var(--border);border-radius:999px;padding:.38rem .65rem;color:var(--emerald-mid);background:var(--bg-card);font-size:.75rem;font-weight:650;transition:background .18s ease,border-color .18s ease,transform .18s ease;}
   .chat-suggestion:hover{border-color:var(--gold);background:#c9a22718;transform:translateY(-1px);}
+  .chat-followups{margin-top:.85rem;padding-top:.65rem;border-top:1px solid var(--border);}
+  .chat-followups-label{margin:0 0 .45rem;color:var(--text-mute);font-size:.7rem;font-weight:700;letter-spacing:.02em;}
   .chat-message-actions{display:flex;justify-content:flex-end;margin-top:.55rem;}
   .chat-copy-button{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border);border-radius:.55rem;padding:.3rem .55rem;color:var(--text-mute);font-size:.72rem;font-weight:650;transition:color .18s ease,border-color .18s ease,background .18s ease;}
   .chat-copy-button:hover{color:var(--emerald-mid);border-color:var(--gold);background:#c9a22712;}
@@ -2827,12 +2829,12 @@ const BAB_ALIASES = {
   'bab-03':['irab','i rob','i\'rab'],
   'bab-04':['tanda irab','tanda i rob','tanda i\'rab'],
   'bab-05':['mu r aba','mu r ab','mu\'rabat','mu\'rab'],
-  'bab-06':['afal','af al','fiil madhi mudhari amr'],
-  'bab-07':['marfuat','marfu at','isim isim marfu'],
+  'bab-06':['afal','af al','fiil madhi mudhari amr','fiil madhi','fiil mudhari','fiil amr','afalul madhi mudhari amr'],
+  'bab-07':['marfuat','marfu at','isim isim marfu','marfuat al asma','isim marfu'],
   'bab-08':['fail','fa il'],
   'bab-09':['naib fail','na ib fail','pengganti fail'],
-  'bab-10':['mubtada khabar','mubtada dan khabar'],
-  'bab-11':['nawasikh','nasikh','kana inna zanna'],
+  'bab-10':['mubtada khabar','mubtada dan khabar','mubtada','khabar'],
+  'bab-11':['nawasikh','nasikh','kana inna zanna','kana wa akhawatuha','kaana wa akhawatuha','inna wa akhawatuha','zhanna wa akhawatuha','zanna wa akhawatuha'],
   'bab-12':['naat','sifat dalam nahwu'],
   'bab-13':['athaf','ataf','huruf athaf'],
   'bab-14':['taukid','tawkid','penguat dalam nahwu'],
@@ -3138,6 +3140,7 @@ function chapterAnswerOne(question, bab){
   const wantsPembahasan = /pembahasan|pembahan|bahas/.test(normalizedQuestion);
   const wantsExplanation = /jelaskan|penjelasan|maksud|kaidah/.test(normalizedQuestion);
   const wantsExample = /contoh|contohnya|kalimat|penerapan/.test(normalizedQuestion);
+  const wantsExercise = /latihan|soal|kuis|uji pemahaman/.test(normalizedQuestion);
   const wantsComplete = /lengkap|selengkapnya|semua bagian/.test(normalizedQuestion);
   const plainText = value => String(value || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim();
 
@@ -3180,6 +3183,16 @@ function chapterAnswerOne(question, bab){
         ];
     return `<strong>Alur Pembelajaran Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><ol class="list-decimal list-inside mt-2 space-y-1">${steps.map(step => `<li>${esc(step)}</li>`).join('')}</ol>`;
   }
+  if (wantsExercise){
+    const rows = bab.table?.rows?.length
+      ? bab.table.rows.slice(0, 4).map((cells, index) => ({
+          prompt:`Apa kaidah atau pokok bahasan pada bagian ${index + 1}?`,
+          answer:cells.map(value => plainText(value)).filter(Boolean).join(' — ')
+        }))
+      : [{prompt:`Apa inti pembahasan Bab ${bab.num}?`, answer:plainText(bab.terjemah)}];
+    const items = rows.map(item => `<li class="mb-2"><strong>${esc(item.prompt)}</strong><details class="mt-1"><summary class="cursor-pointer text-emerald-700">Lihat jawaban</summary><div class="mt-1">${esc(item.answer)}</div></details></li>`).join('');
+    return `<strong>Latihan singkat Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><ol class="list-decimal list-inside mt-2">${items}</ol>`;
+  }
   if (wantsCore){
     return `<strong>Inti Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><br>${esc(plainText(bab.terjemah))}`;
   }
@@ -3199,13 +3212,23 @@ function chapterAnswerOne(question, bab){
     const tableRows = rows.map(([topic, detail, example]) => `<tr><td>${formatCell(topic)}</td><td>${formatCell(detail)}</td><td>${formatCell(example)}</td></tr>`).join('');
     return `<strong>Ringkasan Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><div class="chat-table-wrap" role="region" aria-label="Tabel ringkasan bab" tabindex="0"><table class="chat-table"><thead><tr><th scope="col">Pokok bahasan</th><th scope="col">Ringkasan</th><th scope="col">Contoh / keterangan</th></tr></thead><tbody>${tableRows}</tbody></table></div>`;
   }
-  if (wantsExample && CHAPTER_GUIDANCE[bab.id]) return CHAPTER_GUIDANCE[bab.id];
+  if (wantsExample){
+    if (CHAPTER_GUIDANCE[bab.id]) return CHAPTER_GUIDANCE[bab.id];
+    if (bab.table?.rows?.length){
+      const examples = bab.table.rows.map(cells => `<li>${cells.map(value => esc(plainText(value))).filter(Boolean).join(' — ')}</li>`).join('');
+      return `<strong>Contoh penerapan Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><ul class="list-disc list-inside mt-2 space-y-1">${examples}</ul>`;
+    }
+    const explanation = bab.syarah || BAB_SYARAH_TAMBAHAN[bab.id] || CHAPTER_GUIDANCE[bab.id];
+    if (explanation) return `<strong>Contoh dan penjelasan Bab ${esc(bab.num)} — ${esc(bab.title)}</strong><br>${explanation}`;
+    const matnLines = (bab.matn || []).slice(0, 3);
+    if (matnLines.length) return `<strong>Contoh dari matan Bab ${esc(bab.num)} — ${esc(bab.title)}</strong>${matnLines.map(line => `<div class="chat-arabic chat-arabic-block" lang="ar" dir="rtl">${esc(line)}</div>`).join('')}<p class="mt-2">Perhatikan istilah dan susunan yang menjadi pokok kaidah pada bab ini.</p>`;
+  }
   if (!wantsMatn && !wantsTranslation && !wantsExplanation && CHAPTER_GUIDANCE[bab.id]) return CHAPTER_GUIDANCE[bab.id];
   if (wantsMatn){
     return `<strong>Bab ${bab.num} — ${esc(bab.title)}</strong><br><span class="ar">${bab.matn.join('<br>')}</span>`;
   }
   if (wantsTranslation) return `<strong>Terjemah Bab ${bab.num} — ${esc(bab.title)}</strong><br>${bab.terjemah}`;
-  if (wantsExplanation) return `<strong>Syarah Bab ${bab.num} — ${esc(bab.title)}</strong><br>${bab.syarah || bab.terjemah}`;
+  if (wantsExplanation) return `<strong>Syarah Bab ${bab.num} — ${esc(bab.title)}</strong><br>${bab.syarah || BAB_SYARAH_TAMBAHAN[bab.id] || CHAPTER_GUIDANCE[bab.id] || bab.terjemah}`;
   return `<strong>Bab ${bab.num} — ${esc(bab.title)}</strong><br>${bab.terjemah}`;
 }
 
@@ -3254,7 +3277,7 @@ function findBotAnswer(question){
   const chapters = chaptersForQuestion(question);
   const chapter = chapters[0];
   const chapterRequest = norm(q);
-  const wantsChapterContent = /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar|inti|pokok utama|gagasan utama|esensi|ringkasan|rangkuman|resume|ringkas|tabel|tabulasi|matan|matn|mathan|terjemah|arti|makna|translate|syarah|pembahasan|pembahan|lengkap|teks arab/.test(chapterRequest);
+  const wantsChapterContent = /alur|langkah|panduan|cara belajar|cara mempelajari|rencana belajar|inti|pokok utama|gagasan utama|esensi|ringkasan|rangkuman|resume|ringkas|tabel|tabulasi|matan|matn|mathan|terjemah|arti|makna|translate|syarah|pembahasan|pembahan|lengkap|teks arab|jelaskan|penjelasan|pengertian|definisi|kaidah|fungsi|latihan|soal|kuis/.test(chapterRequest);
   if (chapter && isSundaneseTranslationRequest(question)) return null;
   if (chapter && wantsChapterContent){
     return chapterAnswer(question, chapters);
@@ -3287,13 +3310,13 @@ function findBotAnswer(question){
   return best ? best.ans : null;
 }
 
-async function askChatBackend(message, onDelta){
+async function askChatBackend(message, onDelta, history = []){
   const endpoint = window.CHAT_API_URL || '/api/chat';
   const requestStartedAt = performance.now();
   const response = await fetch(endpoint, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message})
+    body:JSON.stringify({message, history})
   });
   const responseHeadersAt = performance.now();
   if (!response.ok){
@@ -3341,7 +3364,7 @@ async function askChatBackend(message, onDelta){
   return answer.trim();
 }
 
-function renderChatAnswer(bubble, source){
+function renderChatAnswer(bubble, source, sourceQuestion){
   const mathExpressions = [];
   const underlinedText = [];
   let text = String(source);
@@ -3490,6 +3513,7 @@ function renderChatAnswer(bubble, source){
     if (lastIndex > 0) node.replaceWith(fragment);
   });
   addChatCopyAction(bubble);
+  addChatFollowUps(bubble, sourceQuestion);
 }
 
 function solveBasicArithmetic(question){
@@ -3617,7 +3641,7 @@ function addChatCopyAction(bubble){
   button.textContent = 'Salin';
   button.addEventListener('click', async () => {
     const copy = bubble.cloneNode(true);
-    copy.querySelectorAll('.chat-message-actions').forEach(action => action.remove());
+    copy.querySelectorAll('.chat-message-actions, .chat-followups').forEach(action => action.remove());
     const value = copy.innerText.trim();
     try {
       if (navigator.clipboard?.writeText){
@@ -3643,7 +3667,85 @@ function addChatCopyAction(bubble){
   bubble.appendChild(actions);
 }
 
-function addChatMessage(text, isUser){
+function chatFollowUpQuestions(question){
+  const normalized = norm(canonicalQuestion(question));
+  const chapters = chaptersForQuestion(question);
+  const asksFor = {
+    matn:/matn|matan|mathan|teks\s+arab|naskah\s+arab/.test(normalized),
+    translation:/arti|terjemah|makna|translate/.test(normalized),
+    syarah:/syarah|pembahasan|pembahan|jelaskan|penjelasan|maksud|kaidah/.test(normalized),
+    summary:/ringkasan|rangkuman|resume|ringkas|inti|pokok utama/.test(normalized),
+    example:/contoh|penerapan|latihan|soal/.test(normalized)
+  };
+
+  if (chapters.length === 1){
+    const bab = chapters[0];
+    const prefix = `Bab ${bab.num}`;
+    const options = [
+      {key:'matn', text:`Tampilkan matan ${prefix}`},
+      {key:'translation', text:`Terjemahkan ${prefix} ke bahasa Indonesia`},
+      {key:'example', text:`Beri contoh penerapan kaidah ${prefix}`},
+      {key:'syarah', text:`Jelaskan syarah ${prefix} beserta pembahasannya`},
+      {key:'summary', text:`Buat ringkasan tabel ${prefix}`}
+    ];
+    const next = options.filter(option => !asksFor[option.key]).slice(0, 3);
+    return next.map(option => option.text);
+  }
+
+  if (chapters.length > 1){
+    return [
+      'Buat ringkasan tabel untuk bab-bab tersebut',
+      'Terjemahkan matan bab-bab tersebut ke bahasa Indonesia',
+      'Bandingkan kaidah utama dari bab-bab tersebut'
+    ].filter((_, index) => !(index === 0 && asksFor.summary) && !(index === 1 && asksFor.translation));
+  }
+
+  if (/banding|beda|perbedaan|persamaan|compare/.test(normalized)){
+    const topic = followUpTopic(question);
+    return [`Beri contoh untuk membedakan ${topic}`, `Buat latihan singkat tentang ${topic}`];
+  }
+  const topic = followUpTopic(question);
+  return [`Beri contoh penerapan ${topic}`, `Buat ringkasan tabel tentang ${topic}`, `Buat latihan singkat tentang ${topic}`];
+}
+
+function followUpTopic(question){
+  return String(question || '')
+    .replace(/^\s*(?:tolong|mohon)?\s*(?:jelaskan|terangkan|uraikan|apa(?:kah)?\s+(?:inti(?:\s+dari)?|itu|pengertian|maksud)|bagaimana|sebutkan|tampilkan|tulis|terjemahkan|terjemah|beri\s+contoh|contoh|bandingkan|buat(?:kan)?(?:\s+(?:ringkasan|rangkuman|tabel|latihan|soal))?)\s*/i, '')
+    .replace(/^(?:singkat|penerapan|kaidah|syarah|pembahasan|ringkasan|rangkuman|tabel|matan|matn|mathan|latihan|soal|kuis)\s+/i, '')
+    .replace(/^(?:dalam\s+bentuk\s+tabel|ke\s+bahasa\s+(?:indonesia|sunda)|tentang|mengenai|dari)\s+/i, '')
+    .replace(/[?!.]+$/g, '')
+    .trim() || 'topik ini';
+}
+
+function isContextualChatFollowUp(question){
+  if (chaptersForQuestion(question).length || chapterForQuestion(question)) return false;
+  const normalized = norm(canonicalQuestion(question));
+  return /penerapannya|contohnya|topik ini|hal ini|tersebut|keduanya|ringkasan|rangkuman|latihan singkat|contoh untuk membedakan|jelaskan lebih|lanjutkan/.test(normalized);
+}
+
+function addChatFollowUps(bubble, question){
+  if (!bubble || !question || bubble.querySelector('.chat-followups')) return;
+  const questions = chatFollowUpQuestions(question);
+  if (!questions.length) return;
+  const group = document.createElement('div');
+  group.className = 'chat-followups';
+  const label = document.createElement('p');
+  label.className = 'chat-followups-label';
+  label.textContent = 'Pertanyaan lanjutan';
+  const suggestions = document.createElement('div');
+  suggestions.className = 'chat-suggestions';
+  questions.forEach(questionText => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'chat-suggestion quick-q';
+    button.textContent = questionText;
+    suggestions.appendChild(button);
+  });
+  group.append(label, suggestions);
+  bubble.appendChild(group);
+}
+
+function addChatMessage(text, isUser, sourceQuestion){
   const win = document.getElementById('chatWindow');
   const wrap = document.createElement('div');
   wrap.className = 'flex gap-3' + (isUser ? ' justify-end' : '');
@@ -3654,7 +3756,11 @@ function addChatMessage(text, isUser){
     ${isUser ? '' : avatar}
     <div class="chat-bubble ${isUser ? 'chat-user' : 'chat-bot'} slide-up">${text}</div>
     ${isUser ? avatar : ''}`;
-  if (!isUser) addChatCopyAction(wrap.querySelector('.chat-bubble'));
+  if (!isUser){
+    const bubble = wrap.querySelector('.chat-bubble');
+    addChatCopyAction(bubble);
+    addChatFollowUps(bubble, sourceQuestion);
+  }
   win.appendChild(wrap);
   win.scrollTop = win.scrollHeight;
 }
@@ -3675,7 +3781,23 @@ function addStreamingChatMessage(){
 }
 
 let lastUserQuestion = '';
+let lastChatTopicQuestion = '';
+const chatTurns = [];
 let chatGeneration = 0;
+
+function plainChatText(value){
+  const container = document.createElement('div');
+  container.innerHTML = String(value || '');
+  container.querySelectorAll('.chat-message-actions, .chat-followups, script, style').forEach(node => node.remove());
+  return (container.innerText || container.textContent || '').trim();
+}
+
+function recentChatHistory(){
+  return chatTurns.filter(turn => turn.answer).slice(-6).flatMap(turn => [
+    {role:'user', content:turn.question.slice(0, 1800)},
+    {role:'assistant', content:turn.answer.slice(0, 1800)}
+  ]);
+}
 
 function sendChat(){
   const input = document.getElementById('chatInput');
@@ -3683,6 +3805,14 @@ function sendChat(){
   if (!text) return;
   const requestGeneration = chatGeneration;
   const previousQuestion = lastUserQuestion;
+  const backendHistory = recentChatHistory();
+  const currentTurn = {question:text, answer:''};
+  chatTurns.push(currentTurn);
+  const isContextualFollowUp = isContextualChatFollowUp(text);
+  const contextualQuestion = isContextualFollowUp && lastChatTopicQuestion
+    ? `${text} ${lastChatTopicQuestion}`
+    : text;
+  if (!isContextualFollowUp) lastChatTopicQuestion = followUpTopic(text);
   lastUserQuestion = text;
   addChatMessage(esc(text), true);
   input.value = '';
@@ -3701,15 +3831,16 @@ function sendChat(){
     const current = canonicalQuestion(text);
     const isPesantrenFollowUp = /maksud saya pesantrennya|pesantrennya/.test(current)
       && /darut tauhid|daarut tauhiid/.test(previous);
-    const localAnswer = solveBasicArithmetic(text) || findBotAnswer(isPesantrenFollowUp ? previousQuestion : text);
+    const localAnswer = solveBasicArithmetic(text) || findBotAnswer(isPesantrenFollowUp ? previousQuestion : contextualQuestion);
     if (localAnswer){
       typing.remove();
-      addChatMessage(localAnswer, false);
+      currentTurn.answer = plainChatText(localAnswer);
+      addChatMessage(localAnswer, false, contextualQuestion);
     } else {
       let answerBubble = null;
       let streamedAnswer = '';
       try {
-        const completeAnswer = await askChatBackend(chapterBackendMessage(text), chunk => {
+        const completeAnswer = await askChatBackend(chapterBackendMessage(contextualQuestion), chunk => {
           if (requestGeneration !== chatGeneration) return;
           if (!answerBubble){
             typing.remove();
@@ -3718,8 +3849,10 @@ function sendChat(){
           streamedAnswer += chunk;
           answerBubble.textContent = streamedAnswer;
           document.getElementById('chatWindow').scrollTop = document.getElementById('chatWindow').scrollHeight;
-        });
-        if (requestGeneration === chatGeneration && answerBubble) renderChatAnswer(answerBubble, completeAnswer);
+        }, backendHistory);
+        currentTurn.answer = completeAnswer.trim();
+        if (requestGeneration === chatGeneration && answerBubble) renderChatAnswer(answerBubble, completeAnswer, contextualQuestion);
+        else if (requestGeneration === chatGeneration) addChatMessage(esc(completeAnswer), false, contextualQuestion);
       } catch (error) {
         if (requestGeneration !== chatGeneration) return;
         typing.remove();
@@ -3761,6 +3894,8 @@ chatWindow.addEventListener('click', event => {
 document.getElementById('chatClear').addEventListener('click', () => {
   chatGeneration++;
   lastUserQuestion = '';
+  lastChatTopicQuestion = '';
+  chatTurns.length = 0;
   chatWindow.replaceChildren(initialChatWelcome.cloneNode(true));
   chatInput.value = '';
   chatInput.style.height = '';

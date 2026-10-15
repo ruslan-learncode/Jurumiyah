@@ -10,6 +10,10 @@ answers are cached in memory for 15 minutes (up to 256 entries); cached answers
 are returned immediately. The cache is local to each process and clears when
 the backend restarts.
 The Gemini API key stays in the server environment and is never sent to the browser.
+The browser checks its local knowledge base first. When it has no local answer,
+the backend receives the latest question and up to six completed chat exchanges
+so follow-up questions can use the conversation context. The API also accepts
+requests without history for backward compatibility.
 
 ## Inspect chat latency
 
