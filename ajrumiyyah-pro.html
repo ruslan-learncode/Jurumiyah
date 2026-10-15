@@ -266,7 +266,7 @@
   /* Flashcard */
   .flashcard{
     perspective:1200px;
-    height:340px;
+    height:310px;
   }
   .flashcard-inner{
     position:relative; width:100%; height:100%;
@@ -289,6 +289,15 @@
   .fc-question{font-family:'Plus Jakarta Sans','Inter',sans-serif;direction:ltr;unicode-bidi:plaintext;font-size:clamp(1.35rem,3.2vw,2rem);font-weight:650;line-height:1.5;letter-spacing:-.025em;overflow-wrap:anywhere;}
   .fc-answer{unicode-bidi:plaintext;overflow-wrap:anywhere;}
   .fc-progress{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.75rem;color:var(--text-mute);font-size:.75rem;}
+  .fc-level-button{display:flex;flex-direction:column;align-items:flex-start;gap:.2rem;min-width:0;padding:.8rem .85rem;border:1px solid var(--border);border-radius:.85rem;background:var(--bg-soft);color:var(--text-main);text-align:left;transition:border-color .18s ease,background .18s ease,transform .18s ease,box-shadow .18s ease;}
+  .fc-level-button:hover{border-color:var(--gold);transform:translateY(-1px);}
+  .fc-level-button[aria-pressed="true"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 9%,var(--bg-card));box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent);}
+  .fc-level-button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  .fc-level-button strong{color:var(--gold);font-size:1.2rem;line-height:1.2;}
+  .fc-level-button small{color:var(--text-mute);font-size:.68rem;line-height:1.3;}
+  .fc-level-status{display:flex;justify-content:space-between;gap:.75rem;align-items:center;margin:-.75rem 0 1rem;color:var(--text-mute);font-size:.75rem;}
+  #fcMasteredCount{flex:none;color:var(--emerald-mid);font-weight:750;}
+  @media(max-width:640px){.flashcard{height:280px}.flashcard-face{padding:1.4rem}.fc-level-button{padding:.7rem .6rem}.fc-level-status{align-items:flex-start;flex-direction:column;gap:.25rem}}
 
   /* Chatbot */
   .chat-bubble{ max-width:85%; border-radius:.75rem; padding:.85rem 1.1rem; line-height:1.55; font-size:.9rem; overflow-wrap:anywhere; }
@@ -933,37 +942,22 @@
       </div>
 
       <div class="p-6 md:p-8">
-        <div class="grid grid-cols-3 md:grid-cols-5 gap-3 mb-6 text-center">
-          <div class="rounded-xl p-3" style="background:var(--bg-soft);border:1px solid var(--border)">
-            <p class="text-[10px] uppercase font-bold" style="color:var(--text-mute)">Kotak 1</p>
-            <p id="box1Count" class="text-xl font-extrabold text-yellow-600">0</p>
-          </div>
-          <div class="rounded-xl p-3" style="background:var(--bg-soft);border:1px solid var(--border)">
-            <p class="text-[10px] uppercase font-bold" style="color:var(--text-mute)">Kotak 2</p>
-            <p id="box2Count" class="text-xl font-extrabold text-yellow-600">0</p>
-          </div>
-          <div class="rounded-xl p-3" style="background:var(--bg-soft);border:1px solid var(--border)">
-            <p class="text-[10px] uppercase font-bold" style="color:var(--text-mute)">Kotak 3</p>
-            <p id="box3Count" class="text-xl font-extrabold text-yellow-600">0</p>
-          </div>
-          <div class="rounded-xl p-3" style="background:var(--bg-soft);border:1px solid var(--border)">
-            <p class="text-[10px] uppercase font-bold" style="color:var(--text-mute)">Kotak 4</p>
-            <p id="box4Count" class="text-xl font-extrabold text-yellow-600">0</p>
-          </div>
-          <div class="rounded-xl p-3" style="background:var(--bg-soft);border:1px solid var(--border)">
-            <p class="text-[10px] uppercase font-bold" style="color:var(--text-mute)">Dikuasai</p>
-            <p id="box5Count" class="text-xl font-extrabold text-emerald-500">0</p>
-          </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" role="group" aria-label="Pilih tingkat kesulitan kartu">
+          <button type="button" class="fc-level-button" data-fc-level="1" aria-pressed="true"><span class="text-[10px] uppercase font-bold">Tingkat 1</span><strong id="box1Count">0</strong><small>Dasar</small></button>
+          <button type="button" class="fc-level-button" data-fc-level="2" aria-pressed="false"><span class="text-[10px] uppercase font-bold">Tingkat 2</span><strong id="box2Count">0</strong><small>Pengenalan</small></button>
+          <button type="button" class="fc-level-button" data-fc-level="3" aria-pressed="false"><span class="text-[10px] uppercase font-bold">Tingkat 3</span><strong id="box3Count">0</strong><small>Pemahaman</small></button>
+          <button type="button" class="fc-level-button" data-fc-level="4" aria-pressed="false"><span class="text-[10px] uppercase font-bold">Tingkat 4</span><strong id="box4Count">0</strong><small>Tantangan</small></button>
         </div>
 
-        <div class="fc-progress"><span>Pengulangan bertahap</span><span id="fcProgress">Memuat kartu…</span></div>
+        <div class="fc-level-status"><span id="fcLevelDescription">Dasar · mengenali istilah dan definisi pokok.</span><span id="fcMasteredCount">0 dari 40 kartu dikuasai</span></div>
+        <div class="fc-progress"><span>Kartu terpilih</span><span id="fcProgress">Memuat kartu…</span></div>
         <div id="flashcardContainer" class="flashcard cursor-pointer" role="button" tabindex="0" aria-label="Balik kartu" aria-pressed="false">
           <div class="flashcard-inner" id="flashcardInner">
             <div class="flashcard-face flashcard-front text-center">
               <div>
                 <p class="text-[10px] uppercase tracking-wider text-yellow-400/70 font-bold mb-3">Pertanyaan</p>
                 <p id="fcQuestion" class="fc-question text-yellow-50" lang="id" dir="ltr">—</p>
-                <p class="text-emerald-100/55 text-xs mt-6">Pilih kartu untuk melihat jawaban</p>
+            <p class="text-emerald-100/55 text-xs mt-6">Tekan kartu untuk melihat jawaban</p>
               </div>
             </div>
             <div class="flashcard-face flashcard-back" style="background:var(--bg-soft);border:1px solid var(--border)">
@@ -977,18 +971,18 @@
 
         <div id="fcControls" class="mt-6 grid grid-cols-3 gap-3 hidden">
           <button id="fcAgain" class="py-3 rounded-xl font-bold text-sm transition" style="background:#fdeeee;color:#7a1e1a;border:1px solid #f5a5a5">
-            ❌ Ulangi<br><span class="text-[10px] opacity-70">Kembali ke Kotak 1</span>
+            Ulangi<br><span class="text-[10px] opacity-70">Belum dikuasai</span>
           </button>
           <button id="fcHard" class="py-3 rounded-xl font-bold text-sm transition" style="background:#fef3c7;color:#78350f;border:1px solid #fbd34d">
-            🤔 Sulit<br><span class="text-[10px] opacity-70">Tetap di kotak</span>
+            Sulit<br><span class="text-[10px] opacity-70">Perlu latihan lagi</span>
           </button>
           <button id="fcEasy" class="py-3 rounded-xl font-bold text-sm transition" style="background:#dcfce7;color:#14532d;border:1px solid #86d29c">
-            ✅ Mudah<br><span class="text-[10px] opacity-70">Naik satu kotak</span>
+            Dikuasai<br><span class="text-[10px] opacity-70">Tandai sudah hafal</span>
           </button>
         </div>
 
         <p class="text-center text-xs mt-4" style="color:var(--text-mute)">
-          💡 Klik kartu untuk membalik · Gunakan tombol di atas untuk menilai
+          Pilih tingkat, lalu tekan kartu untuk melihat jawaban.
         </p>
       </div>
     </section>
@@ -2344,56 +2338,74 @@ const FLASHCARD_DATA = [
   { q:'Sebutkan contoh Zharaf Zaman!', a:'الْيَوْمَ، اللَّيْلَةَ، غَدًا، صَبَاحًا، مَسَاءً، أَبَدًا.' }
 ];
 
+const FLASHCARD_LEVELS = [
+  {id:1, name:'Dasar', description:'Mengenali istilah dan definisi pokok.'},
+  {id:2, name:'Pengenalan', description:'Mengenali tanda dan kelompok kaidah.'},
+  {id:3, name:'Pemahaman', description:'Memahami istilah dan hubungan antarunsur nahwu.'},
+  {id:4, name:'Tantangan', description:'Menerapkan dan menganalisis kaidah yang lebih khusus.'}
+];
+// Setiap kartu berada pada satu tingkat tetap; indeks pada daftar ini berbasis nol.
+const FLASHCARD_LEVEL_MAP = [1,1,1,1,1,1,2,2,2,2,1,1,2,1,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,4,1,2,3,3,3,3,4,4,4];
+FLASHCARD_DATA.forEach((card, index) => { card.level = FLASHCARD_LEVEL_MAP[index] || 1; });
+const uniqueFlashcardPrompts = new Set(FLASHCARD_DATA.map(card => card.q.normalize('NFKC').toLocaleLowerCase('id-ID').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()));
+if (uniqueFlashcardPrompts.size !== FLASHCARD_DATA.length) console.warn('Ada pertanyaan flashcard yang berulang.');
+
 function getSRS(){
   return JSON.parse(localStorage.getItem('ajrumiyyah-srs') || 'null') || {};
 }
 function saveSRS(s){ localStorage.setItem('ajrumiyyah-srs', JSON.stringify(s)); }
 let srs = getSRS();
 
-// Initialize cards
-FLASHCARD_DATA.forEach((_, i) => {
-  if (!srs[i]) srs[i] = { box:1, lastSeen:0, seen:0 };
+// Keep existing review history and migrate the old fifth-box state to mastery.
+FLASHCARD_DATA.forEach((card, i) => {
+  const saved = srs[i] || {};
+  srs[i] = {
+    level:card.level,
+    mastered:typeof saved.mastered === 'boolean' ? saved.mastered : Number(saved.box) >= 5,
+    lastSeen:Number(saved.lastSeen) || 0,
+    seen:Number(saved.seen) || 0
+  };
 });
 saveSRS(srs);
 
-let currentCard = null;
 let currentCardIdx = -1;
+let selectedFlashcardLevel = 1;
+let flashcardRenderToken = 0;
 
-function pickNextCard(){
-  const now = Date.now();
-  // Priority: Box 1 > Box 2 > Box 3 > Box 4 > Box 5
-  // Within box, pick least recently seen
-  const sorted = Object.entries(srs)
-    .map(([idx, data]) => ({ idx: parseInt(idx), ...data }))
-    .filter(c => c.box < 5)
-    .sort((a, b) => {
-      if (a.box !== b.box) return a.box - b.box;
-      return a.lastSeen - b.lastSeen;
-    });
+function flashcardsForLevel(level){
+  return FLASHCARD_DATA.map((data, idx) => ({data, idx, progress:srs[idx]})).filter(card => card.data.level === level);
+}
 
-  if (!sorted.length) return null;
-  return sorted[0];
+function pickNextCard(excludeIndex = -1){
+  const levelCards = flashcardsForLevel(selectedFlashcardLevel);
+  const unmasteredCards = levelCards.filter(card => !card.progress.mastered);
+  const sorted = (unmasteredCards.length ? unmasteredCards : levelCards)
+    .sort((a, b) => a.progress.seen - b.progress.seen || a.progress.lastSeen - b.progress.lastSeen);
+  return sorted.find(card => card.idx !== excludeIndex) || sorted[0] || null;
 }
 
 function updateBoxCounts(){
-  const counts = [0,0,0,0,0];
-  Object.values(srs).forEach(c => counts[c.box - 1]++);
-  counts.forEach((n, i) => document.getElementById('box' + (i+1) + 'Count').textContent = n);
+  FLASHCARD_LEVELS.forEach(level => {
+    document.getElementById(`box${level.id}Count`).textContent = flashcardsForLevel(level.id).length;
+  });
+  const masteredCount = Object.values(srs).filter(card => card.mastered).length;
+  document.getElementById('fcMasteredCount').textContent = `${masteredCount} dari ${FLASHCARD_DATA.length} kartu dikuasai`;
 }
-function renderFlashcard(){
-  const card = pickNextCard();
+function renderFlashcard(cardIndex = null){
+  const card = cardIndex === null ? pickNextCard(currentCardIdx) : {idx:cardIndex};
+  const renderToken = ++flashcardRenderToken;
   updateBoxCounts();
   const fcQ = document.getElementById('fcQuestion');
   const fcA = document.getElementById('fcAnswer');
-  const fcInner = document.getElementById('flashcardInner');
   const fcControls = document.getElementById('fcControls');
   const container = document.getElementById('flashcardContainer');
   const fcProgress = document.getElementById('fcProgress');
-
+  const levelCards = flashcardsForLevel(selectedFlashcardLevel);
   if (!card){
-    fcQ.textContent = '🎉 Semua kartu sudah dikuasai!';
-    fcA.textContent = 'Anda telah menyelesaikan semua kartu belajar. Alhamdulillah!';
-    fcProgress.textContent = 'Semua kartu tuntas';
+    const level = FLASHCARD_LEVELS.find(item => item.id === selectedFlashcardLevel);
+    fcQ.textContent = `Belum ada kartu di tingkat ${level.id}.`;
+    fcA.textContent = 'Silakan pilih tingkat lainnya.';
+    fcProgress.textContent = 'Tidak ada kartu';
     fcControls.classList.add('hidden');
     container.classList.remove('flipped');
     container.setAttribute('aria-pressed','false');
@@ -2403,22 +2415,28 @@ function renderFlashcard(){
 
   currentCardIdx = card.idx;
   const data = FLASHCARD_DATA[card.idx];
-  fcProgress.textContent = `Kotak ${card.box} · Kartu ${card.idx + 1}`;
+  const cardNumber = levelCards.findIndex(item => item.idx === card.idx) + 1;
+  const level = FLASHCARD_LEVELS.find(item => item.id === selectedFlashcardLevel);
+  const wasFlipped = container.classList.contains('flipped');
+  fcProgress.textContent = `Tingkat ${level.id} · Kartu ${cardNumber} dari ${levelCards.length}`;
+  fcQ.textContent = data.q;
   container.classList.remove('flipped');
   container.setAttribute('aria-pressed','false');
-  setTimeout(() => { fcQ.textContent = data.q; fcA.textContent = data.a; }, 350); // cegah jawaban "bocor" saat kartu berbalik
+  if (wasFlipped){
+    fcA.textContent = '';
+    setTimeout(() => { if (renderToken === flashcardRenderToken) fcA.textContent = data.a; }, 350);
+  } else fcA.textContent = data.a;
   fcControls.classList.add('hidden');
-  container.classList.remove('flipped');
-
-  // Box counts
-  const counts = [0,0,0,0,0];
-  Object.values(srs).forEach(c => counts[c.box - 1]++);
-  document.getElementById('box1Count').textContent = counts[0];
-  document.getElementById('box2Count').textContent = counts[1];
-  document.getElementById('box3Count').textContent = counts[2];
-  document.getElementById('box4Count').textContent = counts[3];
-  document.getElementById('box5Count').textContent = counts[4];
 }
+
+document.querySelectorAll('[data-fc-level]').forEach(button => {
+  button.addEventListener('click', () => {
+    selectedFlashcardLevel = Number(button.dataset.fcLevel);
+    currentCardIdx = -1;
+    document.querySelectorAll('[data-fc-level]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    renderFlashcard();
+  });
+});
 
 document.getElementById('flashcardContainer').addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.click(); });
 document.getElementById('flashcardContainer').addEventListener('click', () => {
@@ -2436,9 +2454,7 @@ document.getElementById('flashcardContainer').addEventListener('click', () => {
 function handleSRSRating(rating){
   if (currentCardIdx === -1) return;
   const card = srs[currentCardIdx];
-  if (rating === 'again') card.box = 1;
-  else if (rating === 'hard') card.box = Math.max(1, card.box);
-  else if (rating === 'easy') card.box = Math.min(5, card.box + 1);
+  card.mastered = rating === 'easy';
   card.lastSeen = Date.now();
   card.seen++;
   saveSRS(srs);
@@ -4124,7 +4140,7 @@ document.addEventListener('keydown', (e) => {
       fc.click();
     }
   }
-  // Flashcard: 1 = ulangi, 2 = sulit, 3 = mudah
+  // Flashcard: 1 = ulangi, 2 = sulit, 3 = tandai dikuasai
   if (!typing && !document.getElementById('fcControls').classList.contains('hidden')){
     const r = { '1':'fcAgain', '2':'fcHard', '3':'fcEasy' }[e.key];
     if (r) document.getElementById(r).click();
