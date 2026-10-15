@@ -460,13 +460,28 @@
     position:fixed; top:1rem; right:1rem; z-index:75;
     width:340px; max-width:calc(100vw - 2rem);
     background:var(--bg-card);
-    border:1px solid var(--border);
+    border:1px solid rgba(201,162,39,.42);
     border-radius:1.25rem;
     box-shadow:0 30px 70px -20px rgba(0,0,0,.35);
     transform:translateY(-120%); opacity:0;
     transition:transform .35s cubic-bezier(.4,.2,.2,1), opacity .35s ease;
   }
   .settings-panel.open{ transform:translateY(0); opacity:1; }
+  .settings-title{display:flex;align-items:center;gap:.55rem;}
+  .settings-title-icon{display:inline-grid;place-items:center;color:var(--gold);}
+  .settings-title-icon svg{width:1.2rem;height:1.2rem;}
+  .settings-inline-icon{display:inline-grid;place-items:center;color:var(--gold);vertical-align:-.16em;margin-right:.3rem;}
+  .settings-inline-icon svg{width:1.1rem;height:1.1rem;}
+  .theme-btn{transition:border-color .18s ease,background-color .18s ease,box-shadow .18s ease;}
+  .theme-btn:hover{border-color:var(--gold)!important;}
+  #resetSettings{border:1px solid rgba(232,207,122,.2);transition:background-color .18s ease,border-color .18s ease;}
+  #resetSettings:hover{background:var(--emerald-mid)!important;border-color:rgba(232,207,122,.55);}
+  #resetSettings .settings-inline-icon{color:var(--gold-soft);}
+  #clearProgress{background:#914943!important;color:#fff1ed!important;border:1px solid rgba(145,73,67,.35);transition:background-color .18s ease,border-color .18s ease;}
+  #clearProgress .settings-inline-icon{color:inherit;}
+  #clearProgress:hover{background:#7d3d38!important;border-color:#b66d64;}
+  body.dark #clearProgress{background:#713a36!important;color:#f6dfdc!important;border-color:rgba(232,139,127,.24);}
+  body.dark #clearProgress:hover{background:#82433e!important;}
 
   /* Quote */
   .quote-fade{ animation:quoteFade 1.2s ease-out; }
@@ -613,24 +628,24 @@
 <!-- SETTINGS PANEL -->
 <div id="settingsPanel" class="settings-panel p-5">
   <div class="flex items-center justify-between mb-5">
-    <h3 class="font-display font-bold text-lg" style="color:var(--text-main)">⚙️ Pengaturan</h3>
-    <button id="closeSettings" class="text-2xl leading-none opacity-60 hover:opacity-100">×</button>
+    <h3 class="settings-title font-display font-bold text-lg" style="color:var(--text-main)"><span class="settings-title-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Pengaturan</h3>
+    <button id="closeSettings" aria-label="Tutup pengaturan" class="text-2xl leading-none opacity-60 hover:opacity-100">×</button>
   </div>
 
   <div class="space-y-5">
     <div>
       <label class="text-xs font-bold uppercase tracking-wider" style="color:var(--text-mute)">Tema Warna</label>
       <div class="flex gap-2 mt-2">
-        <button data-theme="light" class="theme-btn flex-1 py-2.5 rounded-lg border text-sm font-semibold" style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)">☀️ Terang</button>
-        <button data-theme="dark" class="theme-btn flex-1 py-2.5 rounded-lg border text-sm font-semibold" style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)">🌙 Gelap</button>
-        <button data-theme="auto" class="theme-btn flex-1 py-2.5 rounded-lg border text-sm font-semibold" style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)">🌗 Auto</button>
+        <button data-theme="light" class="theme-btn flex-1 py-2.5 rounded-lg border text-sm font-semibold" style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)"><span class="settings-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg></span>Terang</button>
+        <button data-theme="dark" class="theme-btn flex-1 py-2.5 rounded-lg border text-sm font-semibold" style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)"><span class="settings-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg></span>Gelap</button>
+        <button data-theme="auto" class="theme-btn flex-1 py-2.5 rounded-lg border text-sm font-semibold" style="background:var(--bg-soft);border-color:var(--border);color:var(--text-main)"><span class="settings-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18Z"/></svg></span>Auto</button>
       </div>
     </div>
 
     <div>
       <label class="text-xs font-bold uppercase tracking-wider flex justify-between" style="color:var(--text-mute)">
         <span>Ukuran Font Arab</span>
-        <span id="fontSizeLabel" class="text-yellow-600">1.9rem</span>
+        <span id="fontSizeLabel" style="color:var(--gold)">1.9rem</span>
       </label>
       <input type="range" id="fontSlider" min="1.2" max="3.2" step="0.1" value="1.9" class="mt-3" />
     </div>
@@ -638,14 +653,14 @@
     <div>
       <label class="text-xs font-bold uppercase tracking-wider flex justify-between" style="color:var(--text-mute)">
         <span>Jarak Baris Arab</span>
-        <span id="lineHeightLabel" class="text-yellow-600">2.6</span>
+        <span id="lineHeightLabel" style="color:var(--gold)">2.6</span>
       </label>
       <input type="range" id="lineSlider" min="1.8" max="3.6" step="0.1" value="2.6" class="mt-3" />
     </div>
 
     <div class="pt-3 border-t" style="border-color:var(--border)">
-      <button id="resetSettings" class="w-full py-2.5 rounded-lg text-sm font-semibold" style="background:var(--emerald);color:var(--gold-soft)">🔄 Reset Semua</button>
-      <button id="clearProgress" class="w-full py-2.5 rounded-lg text-sm font-semibold mt-2" style="background:#b3453f;color:#f5e0dc">🗑️ Hapus Semua Progres</button>
+      <button id="resetSettings" class="w-full py-2.5 rounded-lg text-sm font-semibold" style="background:var(--emerald);color:var(--gold-soft)"><span class="settings-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.4-3"/></svg></span>Reset Semua</button>
+      <button id="clearProgress" class="w-full py-2.5 rounded-lg text-sm font-semibold mt-2"><span class="settings-inline-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg></span>Hapus Semua Progres</button>
     </div>
   </div>
 </div>
